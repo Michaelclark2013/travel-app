@@ -7,6 +7,7 @@ import { deleteTrip, getTrip, upsertTrip } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
 import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
 import { TripCommitmentsPanel } from "@/components/TripCommitmentsPanel";
+import { LocationImageEl } from "@/components/LocationImage";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
 function LegRow({ item }: { item: ItineraryItem }) {
@@ -210,16 +211,19 @@ export default function TripDetailPage() {
         ← All trips
       </Link>
 
-      <div className="steel angle-tr-lg mt-4 p-8 md:p-10 relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-25"
-          style={{
-            background: `linear-gradient(135deg, hsl(${
-              trip.destination.length * 37
-            } 50% 30%), transparent 60%)`,
-          }}
-        />
-        <div className="relative">
+      <div className="steel angle-tr-lg mt-4 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <LocationImageEl
+            name={trip.destination}
+            kind="city"
+            aspect="21/9"
+            rounded="none"
+            overlay
+            loading="eager"
+            className="h-full w-full"
+          />
+        </div>
+        <div className="relative p-8 md:p-10 min-h-[260px] flex flex-col justify-end">
           <h1 className="text-5xl font-bold tracking-tight">
             {trip.destination}
           </h1>

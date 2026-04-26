@@ -1,32 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAuth, useRequireAuth } from "@/components/AuthProvider";
+import { useEffect, useMemo, useState } from "react";
 import {
-  buildPersona,
-  loadPreferences,
-  savePreferences,
-  type SavedPreferences,
-  type TravelPersona,
-} from "@/lib/preferences";
+  BarChart3,
+  Plus,
+  Settings2,
+  Trash2,
+  User,
+  Users,
+} from "lucide-react";
+import { useAuth, useRequireAuth } from "@/components/AuthProvider";
+import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
+import {
+  computeTravelPatterns,
+  loadProfile,
+  loadProfileAsync,
+  saveProfile,
+  type TravelPatterns,
+} from "@/lib/profile";
+import { loadTrips } from "@/lib/storage";
+import { loadConfirmations } from "@/lib/wallet";
+import type { TravelCompanion, TravelerProfile, TripPreferences } from "@/lib/types";
 
 export default function ProfilePage() {
   const { user, ready, signOut } = useAuth();
   useRequireAuth();
-  const [persona, setPersona] = useState<TravelPersona | null>(null);
-  const [prefs, setPrefs] = useState<SavedPreferences>({
-    preferAisle: false,
-    avoidRedeyes: false,
-    walkPace: "normal",
-    diet: "",
-  });
-  const [saved, setSaved] = useState(false);
+  const [profile, setProfile] = useState<TravelerProfile>({});
+  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     if (!ready || !user) return;
-    setPersona(buildPersona());
-    setPrefs(loadPreferences());
+    setProfile(loadProfile());
+    loadProfileAsync().then((remote) => {
+      if (Object.keys(remote).length > 0) setProfile(remote);
+    });
   }, [ready, user]);
+
+  function patch(p: Partial<TravelerProfile>) {
+    const next = { ...profile, ...p, updatedAt: new Date().toISOString() };
+    setProfile(next);
+    saveProfile(next);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1500);
+  }
+
+  const patterns = useMemo<TravelPatterns | null>(() => {
+    if (!ready || !user) return null;
+    return computeTravelPatterns({
+      trips: loadTrips(),
+      wallet: loadConfirmations(),
+    });
+  }, [ready, user, profile.updatedAt]);
 
   if (!ready || !user) {
     return (
@@ -36,35 +60,27 @@ export default function ProfilePage() {
     );
   }
 
-  function update<K extends keyof SavedPreferences>(
-    key: K,
-    value: SavedPreferences[K]
-  ) {
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    savePreferences(next);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  }
-
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Your profile</h1>
           <p className="text-[var(--muted)] mt-2">
-            What we&apos;ve learned about how you travel — and what you can
-            tune.
+            Set this once. Every new trip pre-fills these defaults so you never
+            re-enter the same info.
           </p>
         </div>
-        <button onClick={signOut} className="btn-steel px-4 py-2.5 text-sm">
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          {savedFlash && <span className="text-xs text-[var(--accent)]">✓ Saved</span>}
+          <button onClick={signOut} className="btn-steel px-4 py-2.5 text-sm">
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div className="steel mt-8 p-6">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 bg-white text-black flex items-center justify-center font-bold text-2xl">
+          <div className="h-14 w-14 bg-white text-black flex items-center justify-center font-bold text-2xl rounded-xl">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -74,129 +90,223 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {persona && persona.totalTrips > 0 ? (
+      {/* Identity */}
+      <div className="steel mt-6 p-6">
+        <SectionHeader icon={User} title="Identity" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+          <Field label="Full name (as on tickets)">
+            <input
+              className="input"
+              value={profile.fullName ?? ""}
+              onChange={(e) => patch({ fullName: e.target.value || undefined })}
+            />
+          </Field>
+          <Field label="Passport name (if different)">
+            <input
+              className="input"
+              value={profile.passportName ?? ""}
+              onChange={(e) => patch({ passportName: e.target.value || undefined })}
+            />
+          </Field>
+          <Field label="Date of birth">
+            <input
+              type="date"
+              className="input"
+              value={profile.dateOfBirth ?? ""}
+              onChange={(e) => patch({ dateOfBirth: e.target.value || undefined })}
+            />
+          </Field>
+          <Field label="Home airport">
+            <input
+              className="input"
+              placeholder="e.g. SFO"
+              value={profile.homeAirport ?? ""}
+              onChange={(e) =>
+                patch({ homeAirport: e.target.value.toUpperCase() || undefined })
+              }
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Default trip preferences */}
+      <TripPreferencesPanel
+        value={profile.defaultPreferences}
+        onChange={(prefs: TripPreferences) =>
+          patch({ defaultPreferences: prefs })
+        }
+        storageKey="voyage:profile-default-prefs-open"
+      />
+
+      {/* Companions */}
+      <CompanionsSection
+        companions={profile.companions ?? []}
+        onChange={(companions) =>
+          patch({ companions: companions.length > 0 ? companions : undefined })
+        }
+      />
+
+      {/* Patterns */}
+      {patterns && patterns.totalTrips > 0 && (
         <div className="steel mt-6 p-6">
-          <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
-            YOUR TRAVEL PERSONA
-          </div>
-          <div className="mt-2 text-2xl font-bold tracking-tight">
-            {personaSummary(persona)}
+          <SectionHeader icon={BarChart3} title="Travel patterns" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <Stat label="Trips" value={patterns.totalTrips.toString()} />
+            <Stat
+              label="Upcoming"
+              value={patterns.upcomingTrips.toString()}
+            />
+            <Stat label="Avg days" value={patterns.avgTripDays.toString()} />
+            <Stat
+              label="Total spend"
+              value={`$${Math.round(patterns.totalSpend).toLocaleString()}`}
+            />
           </div>
 
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Stat label="Trips planned" value={persona.totalTrips.toString()} />
-            <Stat label="Total stops" value={persona.totalActivities.toString()} />
-            <Stat label="Avg trip length" value={`${persona.avgTripDays} days`} />
-            <Stat label="Avg party size" value={persona.avgTravelers.toString()} />
-          </div>
+          {patterns.topDestinations.length > 0 && (
+            <PatternList
+              title="Most-visited destinations"
+              items={patterns.topDestinations}
+            />
+          )}
+          {patterns.topAirlines.length > 0 && (
+            <PatternList title="Favorite airlines" items={patterns.topAirlines} />
+          )}
+          {patterns.topHotels.length > 0 && (
+            <PatternList
+              title="Most-booked hotel brands"
+              items={patterns.topHotels}
+            />
+          )}
 
-          {persona.topVibes.length > 0 && (
-            <div className="mt-6">
-              <div className="text-sm font-medium mb-2">
-                You travel for…
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {persona.topVibes.map((v) => (
-                  <span
-                    key={v.vibe}
-                    className="bg-white/8 border border-[var(--edge)] px-3 py-1.5 text-sm"
-                  >
-                    {v.vibe}{" "}
-                    <span className="text-[var(--muted)] text-xs">
-                      ({v.count})
-                    </span>
-                  </span>
-                ))}
-              </div>
+          {patterns.preferredSeason && (
+            <div className="mt-5 text-sm">
+              <span className="text-[var(--muted)]">You travel most in </span>
+              <span className="font-medium capitalize">
+                {patterns.preferredSeason}
+              </span>
+              <span className="text-[var(--muted)]">
+                {" "}
+                — average daily spend ~${patterns.avgDailySpend}.
+              </span>
             </div>
           )}
         </div>
-      ) : (
-        <div className="steel mt-6 p-6 text-center">
-          <p className="text-[var(--muted)]">
-            Plan a few trips and your travel persona will show up here.
-          </p>
-        </div>
       )}
+    </div>
+  );
+}
 
-      <div className="steel mt-6 p-6">
-        <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
-          PREFERENCES
-        </div>
-        <div className="mt-2 text-lg font-bold">
-          We&apos;ll use these on every new trip
-        </div>
-
-        <div className="mt-5 space-y-4">
-          <Toggle
-            label="Prefer aisle seats"
-            description="On flights you book through Voyage."
-            value={prefs.preferAisle}
-            onChange={(v) => update("preferAisle", v)}
-          />
-          <Toggle
-            label="Avoid red-eye flights"
-            description="Skip departures between 11pm and 5am."
-            value={prefs.avoidRedeyes}
-            onChange={(v) => update("avoidRedeyes", v)}
-          />
-          <div>
-            <div className="text-sm font-medium">Walking pace</div>
-            <div className="text-xs text-[var(--muted)] mb-2">
-              We&apos;ll adjust travel times in your itinerary.
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(["slow", "normal", "fast"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => update("walkPace", p)}
-                  className={`border px-3 py-2 text-sm capitalize ${
-                    prefs.walkPace === p
-                      ? "bg-white text-black border-white"
-                      : "btn-steel"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Diet / allergies</div>
-            <div className="text-xs text-[var(--muted)] mb-2">
-              We&apos;ll filter restaurant suggestions.
-            </div>
+function CompanionsSection({
+  companions,
+  onChange,
+}: {
+  companions: TravelCompanion[];
+  onChange: (next: TravelCompanion[]) => void;
+}) {
+  function add() {
+    onChange([
+      ...companions,
+      {
+        id: `cmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: "",
+        relation: "",
+      },
+    ]);
+  }
+  function update(id: string, p: Partial<TravelCompanion>) {
+    onChange(companions.map((c) => (c.id === id ? { ...c, ...p } : c)));
+  }
+  function remove(id: string) {
+    onChange(companions.filter((c) => c.id !== id));
+  }
+  return (
+    <div className="steel mt-6 p-6">
+      <SectionHeader icon={Users} title="Frequent travel companions" />
+      <p className="text-xs text-[var(--muted)] mt-1">
+        Save the people you travel with most so you can quick-add them to a new
+        trip.
+      </p>
+      <div className="mt-4 space-y-2">
+        {companions.map((c) => (
+          <div
+            key={c.id}
+            className="grid grid-cols-1 md:grid-cols-[1fr_140px_1fr_auto] gap-2 items-center"
+          >
             <input
-              value={prefs.diet}
-              onChange={(e) => update("diet", e.target.value)}
-              placeholder="vegetarian, no shellfish, gluten-free…"
               className="input"
+              placeholder="Name"
+              value={c.name}
+              onChange={(e) => update(c.id, { name: e.target.value })}
             />
+            <input
+              className="input"
+              placeholder="Relation"
+              value={c.relation ?? ""}
+              onChange={(e) =>
+                update(c.id, { relation: e.target.value || undefined })
+              }
+            />
+            <input
+              className="input"
+              placeholder="Email (optional)"
+              value={c.email ?? ""}
+              onChange={(e) =>
+                update(c.id, { email: e.target.value || undefined })
+              }
+            />
+            <button
+              type="button"
+              onClick={() => remove(c.id)}
+              className="text-[var(--muted)] hover:text-[var(--danger)] p-2 justify-self-end"
+              aria-label="Remove"
+            >
+              <Trash2 size={14} strokeWidth={1.75} aria-hidden />
+            </button>
           </div>
-        </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={add}
+        className="mt-3 inline-flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+      >
+        <Plus size={12} strokeWidth={1.75} aria-hidden />
+        Add companion
+      </button>
+    </div>
+  );
+}
 
-        {saved && (
-          <div className="mt-4 text-xs text-white">✓ Saved</div>
-        )}
+function SectionHeader({
+  icon: Icon,
+  title,
+}: {
+  icon: typeof Settings2;
+  title: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon
+        size={16}
+        strokeWidth={1.75}
+        className="text-[var(--accent)]"
+        aria-hidden
+      />
+      <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
+        {title.toUpperCase()}
       </div>
     </div>
   );
 }
 
-function personaSummary(p: TravelPersona) {
-  const parts: string[] = [];
-  if (p.topVibes[0]) parts.push(`${p.topVibes[0].vibe.toLowerCase()}-driven`);
-  if (p.preferredMode === "walk") parts.push("walker");
-  else if (p.preferredMode === "transit") parts.push("transit-friendly");
-  else if (p.preferredMode === "drive") parts.push("road-tripper");
-  if (p.avgTripDays >= 7) parts.push("long-trip");
-  else if (p.avgTripDays <= 3) parts.push("weekend-warrior");
-  if (p.avgTravelers >= 3) parts.push("group");
-  else if (p.avgTravelers === 1) parts.push("solo");
-  else parts.push("duo");
-  return parts.length
-    ? `The ${parts.join(", ")} traveler.`
-    : "Building your persona…";
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="text-[var(--muted)] mb-1 text-xs">{label}</div>
+      {children}
+    </label>
+  );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -208,40 +318,29 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Toggle({
-  label,
-  description,
-  value,
-  onChange,
+function PatternList({
+  title,
+  items,
 }: {
-  label: string;
-  description: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
+  title: string;
+  items: { name: string; count: number }[];
 }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      className="w-full text-left flex items-start justify-between gap-4 py-2"
-    >
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-[var(--muted)] mt-0.5">{description}</div>
+    <div className="mt-5">
+      <div className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">
+        {title}
       </div>
-      <div
-        className={`relative w-11 h-6 border ${
-          value
-            ? "bg-white border-white"
-            : "bg-black/40 border-[var(--edge)]"
-        } shrink-0`}
-      >
-        <div
-          className={`absolute top-0.5 ${value ? "left-5" : "left-0.5"} h-5 w-5 transition-all ${
-            value ? "bg-black" : "bg-[var(--muted)]"
-          }`}
-        />
+      <div className="flex flex-wrap gap-2">
+        {items.map((i) => (
+          <span
+            key={i.name}
+            className="bg-white/8 border border-[var(--edge)] px-3 py-1.5 text-sm rounded-full"
+          >
+            {i.name}
+            <span className="text-[var(--muted)] text-xs ml-1.5">×{i.count}</span>
+          </span>
+        ))}
       </div>
-    </button>
+    </div>
   );
 }

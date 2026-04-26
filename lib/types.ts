@@ -326,3 +326,88 @@ export type DayPlan = {
   date: string;
   items: DayPlanItem[];
 };
+
+// =============================================================================
+// Global traveler profile
+// =============================================================================
+
+export type GymMembership = {
+  brand: string;
+  memberId?: string;
+  homeLocation?: string;
+};
+
+export type TravelCompanion = {
+  id: string;
+  name: string;
+  email?: string;
+  relation?: string;
+  notes?: string;
+};
+
+export type WorkoutType =
+  | "weights"
+  | "cardio"
+  | "running"
+  | "swimming"
+  | "yoga"
+  | "hiit"
+  | "crossfit"
+  | "cycling"
+  | "basketball"
+  | "boxing";
+
+export type WorkoutTime =
+  | "early-morning"
+  | "morning"
+  | "midday"
+  | "afternoon"
+  | "evening"
+  | "late-night";
+
+export type FitnessGoal =
+  | "maintain"
+  | "try-classes"
+  | "outdoor-only"
+  | "hotel-gym-ok";
+
+export type TravelerProfile = {
+  // Identity (rarely changes)
+  fullName?: string;
+  passportName?: string;
+  dateOfBirth?: string;
+  homeAirport?: string;
+
+  // Default trip preferences — copied into a new trip's preferences on create.
+  defaultPreferences?: TripPreferences;
+
+  // Travel companions — quick-add to new trips.
+  companions?: TravelCompanion[];
+
+  // Workout / fitness
+  gymMemberships?: GymMembership[];
+  workoutTypes?: WorkoutType[];
+  workoutTime?: WorkoutTime;
+  workoutFrequencyPerWeek?: number;
+  fitnessGoal?: FitnessGoal;
+
+  updatedAt?: string;
+};
+
+// =============================================================================
+// Per-trip workouts
+// =============================================================================
+
+export type WorkoutPlanItem = {
+  id: string;
+  tripId: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  type: WorkoutType | "free";
+  venue?: string;
+  address?: string;
+  notes?: string;
+  status: "planned" | "skipped" | "done";
+  createdAt: string;
+};

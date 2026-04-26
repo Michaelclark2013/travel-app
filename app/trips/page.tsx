@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Map } from "lucide-react";
 import { deleteTrip, loadTrips } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { LocationImageEl } from "@/components/LocationImage";
 import type { Trip } from "@/lib/types";
 
 export default function TripsPage() {
@@ -47,7 +49,9 @@ export default function TripsPage() {
 
       {hydrated && trips.length === 0 && (
         <div className="steel mt-10 p-12 text-center">
-          <div className="text-6xl mb-5">🗺️</div>
+          <div className="mb-5 flex justify-center text-[var(--muted)]" aria-hidden>
+            <Map size={56} strokeWidth={1.25} />
+          </div>
           <h3 className="text-2xl font-bold tracking-tight">
             No trips yet
           </h3>
@@ -95,13 +99,12 @@ function TripCard({
   return (
     <div className="group relative steel angle-tr overflow-hidden hover:brightness-125 transition">
       <Link href={`/trips/${trip.id}`} className="block">
-        <div
-          className="h-32 w-full"
-          style={{
-            background: `linear-gradient(135deg, hsl(${
-              trip.destination.length * 37
-            } 30% 30%), hsl(${(trip.destination.length * 37 + 60) % 360} 30% 12%))`,
-          }}
+        <LocationImageEl
+          name={trip.destination}
+          kind="city"
+          aspect="16/9"
+          rounded="none"
+          className="w-full"
         />
         <div className="p-5">
           <div className="font-bold text-xl">{trip.destination}</div>
@@ -120,6 +123,13 @@ function TripCard({
       >
         Delete
       </button>
+      <Link
+        href={`/plan?rebook=${encodeURIComponent(trip.id)}`}
+        className="absolute top-3 right-[5.5rem] bg-black/80 backdrop-blur border border-[var(--edge)] px-2.5 py-1 text-xs text-[var(--muted)] opacity-0 group-hover:opacity-100 transition hover:text-[var(--accent)]"
+        title="Plan a similar trip"
+      >
+        Rebook
+      </Link>
     </div>
   );
 }

@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { generateItinerary } from "@/lib/mock-data";
-import { upsertTrip } from "@/lib/storage";
+import { getTrip, upsertTrip } from "@/lib/storage";
+import { applyProfileToNewTripPreferences, loadProfile } from "@/lib/profile";
 import { useRequireAuth } from "@/components/AuthProvider";
 import { comparePlan } from "@/lib/compare";
 import type {
@@ -82,20 +83,32 @@ function PlanForm() {
   const searchParams = useSearchParams();
   const presetDestination = searchParams.get("destination") ?? "";
   const presetDays = Number(searchParams.get("days") ?? 0);
+  const rebookId = searchParams.get("rebook");
+  const rebookSource = useMemo(
+    () => (rebookId ? getTrip(rebookId) : undefined),
+    [rebookId]
+  );
 
-  const [origin, setOrigin] = useState("New York");
-  const [destination, setDestination] = useState(presetDestination);
+  const [origin, setOrigin] = useState(rebookSource?.origin ?? "New York");
+  const [destination, setDestination] = useState(
+    rebookSource?.destination ?? presetDestination
+  );
   const [startDate, setStartDate] = useState(todayISO(14));
   const [endDate, setEndDate] = useState(
     todayISO(14 + (presetDays > 0 ? presetDays : 5))
   );
-  const [travelers, setTravelers] = useState(2);
+  const [travelers, setTravelers] = useState(rebookSource?.travelers ?? 2);
   const [vibes, setVibes] = useState<string[]>(
-    presetDestination ? ["Food", "Culture"] : []
+    rebookSource?.vibes ??
+      (presetDestination ? ["Food", "Culture"] : [])
   );
-  const [budget, setBudget] = useState<number | "">("");
-  const [mode, setMode] = useState<TransportMode>("transit");
-  const [intent, setIntent] = useState<TripIntent>("vacation");
+  const [budget, setBudget] = useState<number | "">(rebookSource?.budget ?? "");
+  const [mode, setMode] = useState<TransportMode>(
+    rebookSource?.transportMode ?? "transit"
+  );
+  const [intent, setIntent] = useState<TripIntent>(
+    rebookSource?.intent ?? "vacation"
+  );
   const [withKids, setWithKids] = useState(false);
   const [accessibility, setAccessibility] = useState(false);
   const [carbonAware, setCarbonAware] = useState(false);
@@ -130,6 +143,7 @@ function PlanForm() {
 
   function handleSave() {
     if (!itinerary || !destination) return;
+    const profile = loadProfile();
     const trip: Trip = {
       id: `trip-${Date.now()}`,
       destination,
@@ -145,6 +159,7 @@ function PlanForm() {
       carbonAware,
       itinerary,
       transportMode: mode,
+      preferences: applyProfileToNewTripPreferences(profile),
       createdAt: new Date().toISOString(),
     };
     upsertTrip(trip);

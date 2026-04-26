@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { LocationImageEl } from "@/components/LocationImage";
 import { parseInspiration, type InspireResult } from "@/lib/inspire";
 
 const EXAMPLES = [
@@ -82,7 +83,18 @@ export default function InspirePage() {
       </div>
 
       {result && (
-        <div className="steel mt-6 p-6">
+        <div className="steel mt-6 overflow-hidden">
+          {result.destination && (
+            <LocationImageEl
+              name={result.destination}
+              kind="city"
+              aspect="21/9"
+              rounded="none"
+              overlay
+              className="w-full"
+            />
+          )}
+          <div className="p-6">
           <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
             WHAT WE FOUND
           </div>
@@ -128,6 +140,7 @@ export default function InspirePage() {
             >
               Plan a trip from this →
             </button>
+          </div>
           </div>
         </div>
       )}
