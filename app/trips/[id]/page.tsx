@@ -11,6 +11,7 @@ import { TripWorkoutsPanel } from "@/components/TripWorkoutsPanel";
 import { TripPackingPanel } from "@/components/TripPackingPanel";
 import { TripLiveBanner } from "@/components/TripLiveBanner";
 import { CurrencyConverter } from "@/components/CurrencyConverter";
+import { DestinationIntelPanel } from "@/components/DestinationIntelPanel";
 import { LocationImageEl } from "@/components/LocationImage";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
@@ -252,6 +253,11 @@ export default function TripDetailPage() {
       </div>
 
       <TripLiveBanner trip={trip} />
+
+      <DestinationIntelPanel
+        trip={trip}
+        storageKey={`voyage:trip-intel-open:${trip.id}`}
+      />
 
       {todayLive && <LiveCompanion day={todayLive} />}
 
