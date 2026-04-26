@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { deleteTrip, getTrip, upsertTrip } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
 import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
+import { TripCommitmentsPanel } from "@/components/TripCommitmentsPanel";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
 function LegRow({ item }: { item: ItineraryItem }) {
@@ -250,6 +251,11 @@ export default function TripDetailPage() {
           update({ ...trip!, preferences })
         }
         storageKey={`voyage:trip-prefs-open:${trip.id}`}
+      />
+
+      <TripCommitmentsPanel
+        trip={trip}
+        storageKey={`voyage:trip-commitments-open:${trip.id}`}
       />
 
       <GroupPanel

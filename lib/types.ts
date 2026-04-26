@@ -270,3 +270,59 @@ export type TripExpense = {
   splitAmong: string[];
   date: string;
 };
+
+export type CommitmentPriority = "must" | "flexible";
+
+export type Commitment = {
+  id: string;
+  tripId: string;
+  title: string;
+  address?: string;
+  /** Optional coords for travel-time math. */
+  lat?: number;
+  lng?: number;
+  date: string;
+  /** "HH:MM" — start of the block. */
+  startTime?: string;
+  /** "HH:MM" — end of the block. */
+  endTime?: string;
+  allDay?: boolean;
+  priority: CommitmentPriority;
+  notes?: string;
+  createdAt: string;
+};
+
+export type DayPlanSuggestionKind = "meal" | "activity" | "transit" | "buffer";
+
+export type DayPlanItem =
+  | {
+      kind: "commitment";
+      id: string;
+      commitment: Commitment;
+      startMin: number;
+      endMin: number;
+    }
+  | {
+      kind: "wallet";
+      id: string;
+      label: string;
+      vendor: string;
+      icon: "flight" | "hotel" | "car" | "restaurant" | "activity" | "train" | "cruise";
+      startMin: number;
+      endMin: number;
+    }
+  | {
+      kind: "suggestion";
+      id: string;
+      label: string;
+      detail: string;
+      type: DayPlanSuggestionKind;
+      startMin: number;
+      endMin: number;
+      dismissed?: boolean;
+    };
+
+export type DayPlan = {
+  date: string;
+  items: DayPlanItem[];
+};
