@@ -64,8 +64,14 @@ export default function Nav() {
                   <DropLink href="/wallet" onClick={() => setMenuOpen(false)}>
                     Trip wallet
                   </DropLink>
+                  <DropLink href="/receipts" onClick={() => setMenuOpen(false)}>
+                    Receipts
+                  </DropLink>
                   <DropLink href="/points" onClick={() => setMenuOpen(false)}>
                     Points & rewards
+                  </DropLink>
+                  <DropLink href="/sos" onClick={() => setMenuOpen(false)}>
+                    Emergency SOS
                   </DropLink>
                   <DropLink href="/profile" onClick={() => setMenuOpen(false)}>
                     Profile

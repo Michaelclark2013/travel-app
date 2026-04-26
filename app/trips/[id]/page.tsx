@@ -12,6 +12,13 @@ import { TripPackingPanel } from "@/components/TripPackingPanel";
 import { TripLiveBanner } from "@/components/TripLiveBanner";
 import { CurrencyConverter } from "@/components/CurrencyConverter";
 import { DestinationIntelPanel } from "@/components/DestinationIntelPanel";
+import {
+  AirportCompanion,
+  DepartureChecklist,
+  EventsCard,
+  JetLagCard,
+  VoiceCommandButton,
+} from "@/components/TripExtras";
 import { LocationImageEl } from "@/components/LocationImage";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
@@ -254,10 +261,17 @@ export default function TripDetailPage() {
 
       <TripLiveBanner trip={trip} />
 
+      <AirportCompanion trip={trip} />
+      <DepartureChecklist trip={trip} />
+
       <DestinationIntelPanel
         trip={trip}
         storageKey={`voyage:trip-intel-open:${trip.id}`}
       />
+
+      <JetLagCard trip={trip} storageKey={`voyage:trip-jetlag-open:${trip.id}`} />
+
+      <EventsCard trip={trip} storageKey={`voyage:trip-events-open:${trip.id}`} />
 
       {todayLive && <LiveCompanion day={todayLive} />}
 
@@ -285,6 +299,8 @@ export default function TripDetailPage() {
       />
 
       <CurrencyConverter destination={trip.destination} />
+
+      <VoiceCommandButton trip={trip} />
 
       <GroupPanel
         trip={trip}

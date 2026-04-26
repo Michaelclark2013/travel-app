@@ -398,12 +398,116 @@ export type TravelerProfile = {
   workoutFrequencyPerWeek?: number;
   fitnessGoal?: FitnessGoal;
 
+  // Credit cards (used by the loyalty / rewards optimizer)
+  creditCards?: CreditCard[];
+
+  // Health (used by SOS screen)
+  bloodType?: string;
+  medicalAllergies?: string;
+  currentMedications?: string;
+
   updatedAt?: string;
 };
 
 // =============================================================================
 // Per-trip workouts
 // =============================================================================
+
+// =============================================================================
+// Credit cards (loyalty optimizer)
+// =============================================================================
+
+export type CreditCardCategory =
+  | "dining"
+  | "travel"
+  | "flights"
+  | "hotels"
+  | "groceries"
+  | "gas"
+  | "transit"
+  | "entertainment"
+  | "everything";
+
+export type CreditCardReward = {
+  category: CreditCardCategory;
+  multiplier: number;
+};
+
+export type CreditCard = {
+  id: string;
+  name: string;
+  /** Issuer (Chase, Amex, Capital One, etc.) */
+  issuer?: string;
+  rewards: CreditCardReward[];
+  /** Optional notes — annual fee, perks, etc. */
+  notes?: string;
+};
+
+// =============================================================================
+// Receipts (manual / OCR-style entry)
+// =============================================================================
+
+export type Receipt = {
+  id: string;
+  tripId?: string;
+  vendor: string;
+  totalUsd: number;
+  currency?: string;
+  totalOriginal?: number;
+  date: string;
+  category:
+    | "food"
+    | "transport"
+    | "lodging"
+    | "activity"
+    | "shopping"
+    | "other";
+  notes?: string;
+  /** Companion ids the cost should be split with. */
+  splitWith?: string[];
+  imageDataUrl?: string;
+  createdAt: string;
+};
+
+// =============================================================================
+// Price watch
+// =============================================================================
+
+export type PricePoint = { dateISO: string; price: number };
+export type PriceWatch = {
+  confirmationId: string;
+  enabled: boolean;
+  history: PricePoint[];
+  alertBelowUsd?: number;
+};
+
+// =============================================================================
+// Events (local discovery)
+// =============================================================================
+
+export type LocalEvent = {
+  id: string;
+  title: string;
+  category: "music" | "sports" | "festival" | "market" | "exhibition" | "food";
+  date: string;
+  startTime?: string;
+  venue: string;
+  blurb: string;
+};
+
+// =============================================================================
+// Achievements
+// =============================================================================
+
+export type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  /** True when the user qualifies. */
+  unlocked: boolean;
+  /** 0–1 progress for partially-completed achievements. */
+  progress?: number;
+};
 
 export type WorkoutPlanItem = {
   id: string;

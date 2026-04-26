@@ -21,6 +21,9 @@ import {
 import { vendorLogoUrl } from "@/lib/wallet-rules";
 import { qrDataUrl } from "@/lib/qr";
 import { mockFlightStatus } from "@/lib/disruptions";
+import { PriceWatchToggle } from "@/components/TripExtras";
+import { recommendCardForBooking } from "@/lib/credit-cards";
+import { loadProfile } from "@/lib/profile";
 
 export const CATEGORY_META: Record<
   ConfirmationType,
@@ -41,6 +44,20 @@ export function formatDate(s: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function CardOptimizerHint({ c }: { c: Confirmation }) {
+  const profile = loadProfile();
+  const cards = profile.creditCards ?? [];
+  const rec = recommendCardForBooking({ cards, booking: c });
+  if (!rec) return null;
+  return (
+    <div className="mt-3 text-xs px-3 py-2 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/30">
+      Use <span className="font-bold">{rec.card.name}</span> for{" "}
+      <span className="font-bold">{rec.multiplier}×</span> on {rec.category} —
+      ~{rec.estimatedPoints.toLocaleString()} points on this booking.
+    </div>
+  );
 }
 
 function FlightStatusBadge({ c }: { c: Confirmation }) {
@@ -265,6 +282,9 @@ export function ConfirmationCard({
             />
           </div>
         )}
+
+        {!readOnly && <CardOptimizerHint c={c} />}
+        {!readOnly && <PriceWatchToggle c={c} />}
 
         {!readOnly && (
           <div className="mt-4 flex items-center justify-end gap-3 text-xs text-[var(--muted)]">

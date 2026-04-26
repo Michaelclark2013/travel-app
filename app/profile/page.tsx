@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Award,
   BarChart3,
+  CreditCard as CreditCardIcon,
+  HeartPulse,
+  Lock,
   Plus,
   Settings2,
   Trash2,
@@ -21,7 +25,14 @@ import {
 } from "@/lib/profile";
 import { loadTrips } from "@/lib/storage";
 import { loadConfirmations } from "@/lib/wallet";
-import type { TravelCompanion, TravelerProfile, TripPreferences } from "@/lib/types";
+import { POPULAR_CARDS } from "@/lib/credit-cards";
+import { computeAchievements, computeStats } from "@/lib/achievements";
+import type {
+  CreditCard,
+  TravelCompanion,
+  TravelerProfile,
+  TripPreferences,
+} from "@/lib/types";
 
 export default function ProfilePage() {
   const { user, ready, signOut } = useAuth();
@@ -153,6 +164,54 @@ export default function ProfilePage() {
         }
       />
 
+      {/* Credit cards */}
+      <CreditCardsSection
+        cards={profile.creditCards ?? []}
+        onChange={(creditCards) =>
+          patch({ creditCards: creditCards.length > 0 ? creditCards : undefined })
+        }
+      />
+
+      {/* Medical info (used by SOS page) */}
+      <div className="steel mt-6 p-6">
+        <SectionHeader icon={HeartPulse} title="Medical info (for SOS screen)" />
+        <p className="text-xs text-[var(--muted)] mt-1">
+          Stored only on this device + your Supabase profile. Surfaces on the
+          /sos page so first responders can find it quickly.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+          <Field label="Blood type">
+            <input
+              className="input"
+              placeholder="e.g. O+"
+              value={profile.bloodType ?? ""}
+              onChange={(e) => patch({ bloodType: e.target.value || undefined })}
+            />
+          </Field>
+          <Field label="Allergies">
+            <input
+              className="input"
+              value={profile.medicalAllergies ?? ""}
+              onChange={(e) =>
+                patch({ medicalAllergies: e.target.value || undefined })
+              }
+            />
+          </Field>
+          <Field label="Current medications">
+            <input
+              className="input"
+              value={profile.currentMedications ?? ""}
+              onChange={(e) =>
+                patch({ currentMedications: e.target.value || undefined })
+              }
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Achievements */}
+      <AchievementsSection />
+
       {/* Patterns */}
       {patterns && patterns.totalTrips > 0 && (
         <div className="steel mt-6 p-6">
@@ -281,6 +340,183 @@ function CompanionsSection({
         <Plus size={12} strokeWidth={1.75} aria-hidden />
         Add companion
       </button>
+    </div>
+  );
+}
+
+function CreditCardsSection({
+  cards,
+  onChange,
+}: {
+  cards: CreditCard[];
+  onChange: (cards: CreditCard[]) => void;
+}) {
+  function add(card: CreditCard) {
+    if (cards.some((c) => c.id === card.id)) return;
+    onChange([...cards, card]);
+  }
+  function remove(id: string) {
+    onChange(cards.filter((c) => c.id !== id));
+  }
+  return (
+    <div className="steel mt-6 p-6">
+      <SectionHeader icon={CreditCardIcon} title="Credit cards (rewards optimizer)" />
+      <p className="text-xs text-[var(--muted)] mt-1">
+        We&apos;ll recommend which card to use on each booking based on its
+        reward categories.
+      </p>
+      <div className="mt-4 space-y-2">
+        {cards.length === 0 && (
+          <div className="text-sm text-[var(--muted)]">
+            No cards added. Pick from popular cards below or add your own.
+          </div>
+        )}
+        {cards.map((c) => (
+          <div
+            key={c.id}
+            className="border border-[var(--border)] rounded-lg p-3 flex items-start gap-3"
+          >
+            <CreditCardIcon
+              size={16}
+              strokeWidth={1.75}
+              className="text-[var(--accent)] flex-none mt-0.5"
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-sm">{c.name}</div>
+              <div className="text-xs text-[var(--muted)] mt-1">
+                {c.rewards
+                  .map((r) => `${r.multiplier}× ${r.category}`)
+                  .join(" · ")}
+              </div>
+              {c.notes && (
+                <div className="text-xs text-[var(--muted)] mt-1 italic">
+                  {c.notes}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => remove(c.id)}
+              className="text-[var(--muted)] hover:text-[var(--danger)] p-1"
+              aria-label="Remove"
+            >
+              <Trash2 size={13} strokeWidth={1.75} aria-hidden />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4">
+        <div className="text-xs text-[var(--muted)] mb-2">Quick add</div>
+        <div className="flex flex-wrap gap-2">
+          {POPULAR_CARDS.map((c) => {
+            const owned = cards.some((x) => x.id === c.id);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => add(c)}
+                disabled={owned}
+                className={
+                  "px-3 py-1.5 text-xs rounded-full border transition " +
+                  (owned
+                    ? "border-[var(--border)] text-[var(--muted)] cursor-default"
+                    : "border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)]")
+                }
+              >
+                {owned ? "✓ " : "+ "}
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AchievementsSection() {
+  const stats = computeStats();
+  const achievements = computeAchievements(stats);
+  const unlocked = achievements.filter((a) => a.unlocked).length;
+
+  return (
+    <div className="steel mt-6 p-6">
+      <SectionHeader icon={Award} title="Travel achievements" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+        <Stat label="Countries" value={stats.countryCount.toString()} />
+        <Stat
+          label="Est. miles"
+          value={stats.estimatedMiles.toLocaleString()}
+        />
+        <Stat
+          label="Longest trip"
+          value={stats.longestTripDays > 0 ? `${stats.longestTripDays}d` : "—"}
+        />
+        <Stat
+          label="Unlocked"
+          value={`${unlocked} / ${achievements.length}`}
+        />
+      </div>
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {achievements.map((a) => (
+          <div
+            key={a.id}
+            className={
+              "border rounded-lg p-3 flex items-start gap-3 " +
+              (a.unlocked
+                ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
+                : "border-[var(--border)]")
+            }
+          >
+            {a.unlocked ? (
+              <Award
+                size={16}
+                strokeWidth={1.75}
+                className="text-[var(--accent)] flex-none mt-0.5"
+                aria-hidden
+              />
+            ) : (
+              <Lock
+                size={14}
+                strokeWidth={1.75}
+                className="text-[var(--muted)] flex-none mt-1"
+                aria-hidden
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium">{a.title}</div>
+              <div className="text-xs text-[var(--muted)] mt-0.5">
+                {a.description}
+              </div>
+              {a.progress != null && a.progress > 0 && a.progress < 1 && (
+                <div className="mt-2 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--accent)]"
+                    style={{ width: `${a.progress * 100}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {stats.countries.length > 0 && (
+        <div className="mt-5">
+          <div className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">
+            Countries you&apos;ve visited
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {stats.countries.map((c) => (
+              <span
+                key={c}
+                className="bg-white/8 border border-[var(--edge)] px-3 py-1 text-xs rounded-full"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
