@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth, useRequireAuth } from "@/components/AuthProvider";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
 import {
   computeTravelPatterns,
@@ -117,13 +118,19 @@ export default function ProfilePage() {
             />
           </Field>
           <Field label="Home airport">
-            <input
-              className="input"
-              placeholder="e.g. SFO"
+            <LocationAutocomplete
               value={profile.homeAirport ?? ""}
-              onChange={(e) =>
-                patch({ homeAirport: e.target.value.toUpperCase() || undefined })
+              onText={(s) =>
+                patch({ homeAirport: s.toUpperCase() || undefined })
               }
+              onPick={(loc) =>
+                patch({
+                  homeAirport:
+                    (loc.iata ?? loc.name).toUpperCase() || undefined,
+                })
+              }
+              placeholder="e.g. SFO, LAX, JFK"
+              showRecent={false}
             />
           </Field>
         </div>

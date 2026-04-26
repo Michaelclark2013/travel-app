@@ -6,6 +6,7 @@ import { generateItinerary } from "@/lib/mock-data";
 import { getTrip, upsertTrip } from "@/lib/storage";
 import { applyProfileToNewTripPreferences, loadProfile } from "@/lib/profile";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { comparePlan } from "@/lib/compare";
 import type {
   ItineraryDay,
@@ -187,19 +188,23 @@ function PlanForm() {
 
           <div className="mt-6 space-y-5">
             <Field label="Where do you want to go?">
-              <input
+              <LocationAutocomplete
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="Tokyo, Lisbon, Mexico City…"
-                className="input"
+                onText={setDestination}
+                onPick={(loc) =>
+                  setDestination(loc.city ?? loc.name ?? loc.fullName)
+                }
+                placeholder="Tokyo, Lisbon, Mexico City, LAX, an address…"
               />
             </Field>
             <Field label="Where are you starting from?">
-              <input
+              <LocationAutocomplete
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                placeholder="New York"
-                className="input"
+                onText={setOrigin}
+                onPick={(loc) =>
+                  setOrigin(loc.iata ?? loc.city ?? loc.name ?? loc.fullName)
+                }
+                placeholder="New York, JFK, your home address…"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">

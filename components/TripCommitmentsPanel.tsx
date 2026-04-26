@@ -28,6 +28,7 @@ import {
   tripWallet,
   updateCommitment,
 } from "@/lib/commitments";
+import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import type {
   Commitment,
   CommitmentPriority,
@@ -301,6 +302,11 @@ function CommitmentEditor({
   const isNew = initial === null;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    initial?.lat != null && initial?.lng != null
+      ? { lat: initial.lat, lng: initial.lng }
+      : null
+  );
   const [date, setDate] = useState(initial?.date ?? trip.startDate);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
@@ -322,11 +328,14 @@ function CommitmentEditor({
           />
         </Field>
         <Field label="Address">
-          <input
-            className="input"
-            placeholder="Where you need to be"
+          <LocationAutocomplete
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onText={setAddress}
+            onPick={(loc) => {
+              setAddress(loc.fullName);
+              setCoords({ lat: loc.lat, lng: loc.lng });
+            }}
+            placeholder="Search a venue, address, or city"
           />
         </Field>
         <Field label="Date">
@@ -411,6 +420,8 @@ function CommitmentEditor({
                 tripId: trip.id,
                 title: title.trim(),
                 address: address.trim() || undefined,
+                lat: coords?.lat,
+                lng: coords?.lng,
                 date,
                 startTime: !allDay && startTime ? startTime : undefined,
                 endTime: !allDay && endTime ? endTime : undefined,
