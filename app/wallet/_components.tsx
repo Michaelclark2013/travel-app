@@ -20,6 +20,7 @@ import {
 } from "@/lib/wallet";
 import { vendorLogoUrl } from "@/lib/wallet-rules";
 import { qrDataUrl } from "@/lib/qr";
+import { mockFlightStatus } from "@/lib/disruptions";
 
 export const CATEGORY_META: Record<
   ConfirmationType,
@@ -40,6 +41,37 @@ export function formatDate(s: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function FlightStatusBadge({ c }: { c: Confirmation }) {
+  const snap = mockFlightStatus(c);
+  const palette: Record<string, string> = {
+    "on-time": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    boarding: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+    delayed: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    cancelled: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+    arrived: "bg-white/10 text-[var(--muted)] border-[var(--border)]",
+    scheduled: "bg-white/10 text-[var(--muted)] border-[var(--border)]",
+  };
+  const label =
+    snap.status === "delayed"
+      ? `Delayed +${snap.delayMinutes}m`
+      : snap.status.replace(/-/g, " ");
+  const cls = palette[snap.status] ?? palette.scheduled;
+  return (
+    <div className="mt-1 inline-flex items-center gap-2 flex-wrap text-[10px]">
+      <span
+        className={`uppercase tracking-wider px-1.5 py-0.5 rounded border font-medium ${cls}`}
+      >
+        {label}
+      </span>
+      {snap.gate && (
+        <span className="text-[var(--muted)] font-mono">
+          Gate {snap.gate} · T{snap.terminal}
+        </span>
+      )}
+    </div>
+  );
 }
 
 // Brand logo with graceful fallback to the category Lucide icon. Clearbit
@@ -171,6 +203,7 @@ export function ConfirmationCard({
               <div className="text-xs text-[var(--muted)] mt-0.5 truncate">
                 {c.vendor} · {meta.label}
               </div>
+              {c.type === "flight" && <FlightStatusBadge c={c} />}
             </div>
           </div>
           <div className="text-right flex-none">

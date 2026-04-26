@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
@@ -19,6 +19,20 @@ export const metadata: Metadata = {
   title: "Voyage — Plan trips with AI",
   description:
     "AI-powered travel planning. Find cheap flights, hotels, and build a day-by-day itinerary.",
+  appleWebApp: {
+    capable: true,
+    title: "Voyage",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#050507",
 };
 
 export default function RootLayout({

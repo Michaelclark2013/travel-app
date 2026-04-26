@@ -13,6 +13,14 @@ import {
 
 export type { ConfirmationType } from "./wallet-rules";
 
+export type FlightStatus =
+  | "scheduled"
+  | "boarding"
+  | "delayed"
+  | "on-time"
+  | "cancelled"
+  | "arrived";
+
 export type Confirmation = {
   id: string;
   tripId?: string;
@@ -37,6 +45,12 @@ export type Confirmation = {
   currency?: string;
   source: "auto-import" | "manual" | "ingest";
   createdAt?: string;
+  /** Flight-only — live status, gate, terminal. */
+  flightStatus?: FlightStatus;
+  flightStatusUpdatedAt?: string;
+  gate?: string;
+  terminal?: string;
+  delayMinutes?: number;
 };
 
 // ============================================================================

@@ -128,7 +128,14 @@ export type TravelStyle =
   | "business";
 
 export type FrequentFlyerEntry = { airline: string; number: string };
-export type LoyaltyEntry = { program: string; number: string };
+export type LoyaltyEntry = {
+  program: string;
+  number: string;
+  /** Current points balance — used by the loyalty optimizer. */
+  pointBalance?: number;
+  /** Status tier name, e.g. "Gold". */
+  tier?: string;
+};
 export type EmergencyContact = { name: string; relation: string; phone: string };
 export type InsuranceInfo = {
   provider?: string;

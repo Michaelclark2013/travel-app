@@ -7,6 +7,10 @@ import { deleteTrip, getTrip, upsertTrip } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
 import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
 import { TripCommitmentsPanel } from "@/components/TripCommitmentsPanel";
+import { TripWorkoutsPanel } from "@/components/TripWorkoutsPanel";
+import { TripPackingPanel } from "@/components/TripPackingPanel";
+import { TripLiveBanner } from "@/components/TripLiveBanner";
+import { CurrencyConverter } from "@/components/CurrencyConverter";
 import { LocationImageEl } from "@/components/LocationImage";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
@@ -247,6 +251,8 @@ export default function TripDetailPage() {
         </div>
       </div>
 
+      <TripLiveBanner trip={trip} />
+
       {todayLive && <LiveCompanion day={todayLive} />}
 
       <TripPreferencesPanel
@@ -262,6 +268,18 @@ export default function TripDetailPage() {
         storageKey={`voyage:trip-commitments-open:${trip.id}`}
       />
 
+      <TripWorkoutsPanel
+        trip={trip}
+        storageKey={`voyage:trip-workouts-open:${trip.id}`}
+      />
+
+      <TripPackingPanel
+        trip={trip}
+        storageKey={`voyage:trip-packing-open:${trip.id}`}
+      />
+
+      <CurrencyConverter destination={trip.destination} />
+
       <GroupPanel
         trip={trip}
         currentUser={user.name}
@@ -269,13 +287,12 @@ export default function TripDetailPage() {
         onAddExpense={handleAddExpense}
       />
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link
           href={`/flights?from=${encodeURIComponent(trip.origin)}&to=${encodeURIComponent(trip.destination)}&date=${trip.startDate}`}
           className="steel p-5 hover:brightness-125 transition"
         >
-          <div className="text-2xl">✈️</div>
-          <div className="font-bold mt-3">Find flights</div>
+          <div className="font-bold">Find flights</div>
           <div className="text-xs text-[var(--muted)] mt-1">
             {trip.origin} → {trip.destination}
           </div>
@@ -284,8 +301,7 @@ export default function TripDetailPage() {
           href={`/hotels?city=${encodeURIComponent(trip.destination)}`}
           className="steel p-5 hover:brightness-125 transition"
         >
-          <div className="text-2xl">🏨</div>
-          <div className="font-bold mt-3">Find hotels</div>
+          <div className="font-bold">Find hotels</div>
           <div className="text-xs text-[var(--muted)] mt-1">
             {trip.destination}
           </div>
@@ -294,10 +310,18 @@ export default function TripDetailPage() {
           href={`/nearby?city=${encodeURIComponent(trip.destination)}`}
           className="steel p-5 hover:brightness-125 transition"
         >
-          <div className="text-2xl">📍</div>
-          <div className="font-bold mt-3">Food & coffee nearby</div>
+          <div className="font-bold">Food &amp; coffee nearby</div>
           <div className="text-xs text-[var(--muted)] mt-1">
             Use your location while you&apos;re there
+          </div>
+        </Link>
+        <Link
+          href={`/esim?destination=${encodeURIComponent(trip.destination)}&days=${trip.itinerary.length}`}
+          className="steel p-5 hover:brightness-125 transition"
+        >
+          <div className="font-bold">Travel eSIM</div>
+          <div className="text-xs text-[var(--muted)] mt-1">
+            Skip roaming charges
           </div>
         </Link>
       </div>
