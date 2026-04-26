@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
+import { SwRegister } from "@/components/SwRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
+          <SwRegister />
           <Nav />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-[var(--border)] px-6 py-8 text-xs text-[var(--muted)] font-mono">
