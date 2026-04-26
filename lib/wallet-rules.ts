@@ -173,6 +173,97 @@ const VENDOR_RULES: VendorRule[] = [
   { type: "cruise", vendor: "Cruise", patterns: [/\bcruise\b/i] },
 ];
 
+// ============================================================================
+// Vendor → domain map (used for Clearbit-style logo lookups)
+// ============================================================================
+
+export const VENDOR_DOMAINS: Record<string, string> = {
+  // Airlines
+  Delta: "delta.com",
+  United: "united.com",
+  American: "aa.com",
+  JetBlue: "jetblue.com",
+  Alaska: "alaskaair.com",
+  Southwest: "southwest.com",
+  Spirit: "spirit.com",
+  Frontier: "flyfrontier.com",
+  Hawaiian: "hawaiianairlines.com",
+  Lufthansa: "lufthansa.com",
+  "British Airways": "britishairways.com",
+  "Air France": "airfrance.com",
+  KLM: "klm.com",
+  Emirates: "emirates.com",
+  "Qatar Airways": "qatarairways.com",
+  "Singapore Airlines": "singaporeair.com",
+  ANA: "ana.co.jp",
+  "Japan Airlines": "jal.com",
+  "Cathay Pacific": "cathaypacific.com",
+  Ryanair: "ryanair.com",
+  EasyJet: "easyjet.com",
+
+  // Hotels
+  Marriott: "marriott.com",
+  Hilton: "hilton.com",
+  Hyatt: "hyatt.com",
+  IHG: "ihg.com",
+  "Best Western": "bestwestern.com",
+  Wyndham: "wyndham.com",
+  "Four Seasons": "fourseasons.com",
+  "Ritz-Carlton": "ritzcarlton.com",
+  Airbnb: "airbnb.com",
+  Vrbo: "vrbo.com",
+  "Booking.com": "booking.com",
+  Expedia: "expedia.com",
+  "Hotels.com": "hotels.com",
+  Agoda: "agoda.com",
+
+  // Cars
+  Hertz: "hertz.com",
+  Enterprise: "enterprise.com",
+  Avis: "avis.com",
+  Sixt: "sixt.com",
+  Budget: "budget.com",
+  National: "nationalcar.com",
+  Turo: "turo.com",
+
+  // Restaurants
+  OpenTable: "opentable.com",
+  Resy: "resy.com",
+  Tock: "exploretock.com",
+  "Yelp Reservations": "yelp.com",
+
+  // Activities
+  Viator: "viator.com",
+  GetYourGuide: "getyourguide.com",
+  Klook: "klook.com",
+  Tiqets: "tiqets.com",
+  Headout: "headout.com",
+  "Airbnb Experiences": "airbnb.com",
+  Eventbrite: "eventbrite.com",
+  Ticketmaster: "ticketmaster.com",
+  StubHub: "stubhub.com",
+
+  // Trains
+  Amtrak: "amtrak.com",
+  Eurostar: "eurostar.com",
+  Trenitalia: "trenitalia.com",
+  SNCF: "sncf.com",
+  Renfe: "renfe.com",
+  "Deutsche Bahn": "bahn.com",
+  JR: "japanrailpass.net",
+
+  // Cruises
+  "Royal Caribbean": "royalcaribbean.com",
+  Carnival: "carnival.com",
+  Norwegian: "ncl.com",
+};
+
+export function vendorLogoUrl(vendor: string, size = 64): string | null {
+  const domain = VENDOR_DOMAINS[vendor];
+  if (!domain) return null;
+  return `https://logo.clearbit.com/${domain}?size=${size}`;
+}
+
 const TYPE_TITLE: Record<ConfirmationType, string> = {
   flight: "Flight booked",
   hotel: "Stay booked",

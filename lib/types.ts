@@ -55,6 +55,59 @@ export type TripIntent =
   | "foodie"
   | "weekend";
 
+export type SeatPreference = "window" | "aisle" | "middle" | "no-preference";
+export type FloorPreference = "low" | "mid" | "high" | "no-preference";
+export type BedSize = "twin" | "double" | "queen" | "king" | "no-preference";
+export type SmokingPreference = "smoking" | "non-smoking";
+export type TravelStyle =
+  | "luxury"
+  | "budget"
+  | "adventure"
+  | "relaxation"
+  | "business";
+
+export type FrequentFlyerEntry = { airline: string; number: string };
+export type EmergencyContact = { name: string; relation: string; phone: string };
+export type InsuranceInfo = {
+  provider?: string;
+  policyNumber?: string;
+  phone?: string;
+};
+
+export type TripPreferences = {
+  // Flight
+  preferredAirline?: string;
+  seatPreference?: SeatPreference;
+  frequentFlyer?: FrequentFlyerEntry[];
+
+  // Hotel
+  roomType?: string;
+  floorPreference?: FloorPreference;
+  bedSize?: BedSize;
+  smokingPreference?: SmokingPreference;
+
+  // Dining
+  dietaryRestrictions?: string[];
+
+  // Budget
+  dailyBudgetUsd?: number;
+
+  // Style
+  travelStyle?: TravelStyle;
+
+  // Currency
+  preferredCurrency?: string;
+
+  // Safety / admin
+  emergencyContacts?: EmergencyContact[];
+  insurance?: InsuranceInfo;
+
+  // Free-form notes
+  notes?: string;
+
+  updatedAt?: string;
+};
+
 export type Trip = {
   id: string;
   destination: string;
@@ -74,6 +127,7 @@ export type Trip = {
   transportMode: TransportMode;
   invitees?: { email: string; name?: string; status: "pending" | "joined" }[];
   expenses?: TripExpense[];
+  preferences?: TripPreferences;
   createdAt: string;
 };
 

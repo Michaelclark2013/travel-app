@@ -1,6 +1,6 @@
 "use client";
 
-import type { Trip } from "./types";
+import type { Trip, TripPreferences } from "./types";
 import { getSession } from "./auth";
 import { supabase, supabaseEnabled } from "./supabase";
 
@@ -127,6 +127,7 @@ type TripRow = {
   transport_mode: string;
   invitees: Trip["invitees"];
   expenses: Trip["expenses"];
+  preferences: TripPreferences | null;
   created_at: string;
 };
 
@@ -151,6 +152,7 @@ function tripToRow(trip: Trip, userId: string): TripRow {
     transport_mode: trip.transportMode,
     invitees: trip.invitees ?? [],
     expenses: trip.expenses ?? [],
+    preferences: trip.preferences ?? null,
     created_at: trip.createdAt,
   };
 }
@@ -175,6 +177,7 @@ function rowToTrip(row: TripRow): Trip {
     transportMode: row.transport_mode as Trip["transportMode"],
     invitees: row.invitees ?? [],
     expenses: row.expenses ?? [],
+    preferences: row.preferences ?? undefined,
     createdAt: row.created_at,
   };
 }

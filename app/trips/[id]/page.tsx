@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { deleteTrip, getTrip, upsertTrip } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
-import type { ItineraryItem, Trip, TripExpense } from "@/lib/types";
+import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
+import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
 
 function LegRow({ item }: { item: ItineraryItem }) {
   const leg = item.legBefore!;
@@ -242,6 +243,14 @@ export default function TripDetailPage() {
       </div>
 
       {todayLive && <LiveCompanion day={todayLive} />}
+
+      <TripPreferencesPanel
+        value={trip.preferences}
+        onChange={(preferences: TripPreferences) =>
+          update({ ...trip!, preferences })
+        }
+        storageKey={`voyage:trip-prefs-open:${trip.id}`}
+      />
 
       <GroupPanel
         trip={trip}

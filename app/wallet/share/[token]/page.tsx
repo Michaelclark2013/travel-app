@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import { Link2Off } from "lucide-react";
 import { loadShare, type SharePayload } from "@/lib/wallet-share";
 import { summarize } from "@/lib/wallet";
 import { ConfirmationCard, SpendingView, TimelineView } from "../../_components";
@@ -68,7 +69,9 @@ export default function ShareWalletPage({
   if (!snapshot) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-20 text-center">
-        <div className="text-6xl mb-5">🔗</div>
+        <div className="mb-5 flex justify-center text-[var(--muted)]" aria-hidden>
+          <Link2Off size={56} strokeWidth={1.25} />
+        </div>
         <h1 className="text-3xl font-bold">Share link not found</h1>
         <p className="text-[var(--muted)] mt-3 max-w-md mx-auto">
           This wallet may have been revoked, or the link is invalid.

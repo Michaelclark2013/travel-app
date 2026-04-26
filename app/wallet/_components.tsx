@@ -2,25 +2,36 @@
 
 import { useMemo, useRef, useState } from "react";
 import {
+  Car,
+  Hotel as HotelIcon,
+  type LucideIcon,
+  Plane,
+  Ship,
+  Ticket,
+  TrainFront,
+  Utensils,
+} from "lucide-react";
+import {
   type Confirmation,
   type ConfirmationType,
   type CategoryTotal,
   formatMoney,
   summarize,
 } from "@/lib/wallet";
+import { vendorLogoUrl } from "@/lib/wallet-rules";
 import { qrDataUrl } from "@/lib/qr";
 
 export const CATEGORY_META: Record<
   ConfirmationType,
-  { label: string; icon: string; accent: string }
+  { label: string; Icon: LucideIcon; accent: string }
 > = {
-  flight: { label: "Flight", icon: "✈️", accent: "#22d3ee" },
-  hotel: { label: "Hotel", icon: "🏨", accent: "#a78bfa" },
-  car: { label: "Rental car", icon: "🚗", accent: "#f59e0b" },
-  restaurant: { label: "Dining", icon: "🍽️", accent: "#fb7185" },
-  activity: { label: "Activity", icon: "🎟️", accent: "#34d399" },
-  train: { label: "Train", icon: "🚆", accent: "#60a5fa" },
-  cruise: { label: "Cruise", icon: "🛳️", accent: "#38bdf8" },
+  flight: { label: "Flight", Icon: Plane, accent: "#22d3ee" },
+  hotel: { label: "Hotel", Icon: HotelIcon, accent: "#a78bfa" },
+  car: { label: "Rental car", Icon: Car, accent: "#f59e0b" },
+  restaurant: { label: "Dining", Icon: Utensils, accent: "#fb7185" },
+  activity: { label: "Activity", Icon: Ticket, accent: "#34d399" },
+  train: { label: "Train", Icon: TrainFront, accent: "#60a5fa" },
+  cruise: { label: "Cruise", Icon: Ship, accent: "#38bdf8" },
 };
 
 export function formatDate(s: string): string {
@@ -29,6 +40,56 @@ export function formatDate(s: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+// Brand logo with graceful fallback to the category Lucide icon. Clearbit
+// returns 404 for unknown domains, so we render the fallback if loading fails.
+function BrandLogo({
+  vendor,
+  type,
+  size = 32,
+  px = 64,
+}: {
+  vendor: string;
+  type: ConfirmationType;
+  /** Rendered size in pixels. */
+  size?: number;
+  /** Pixel resolution to request from Clearbit. */
+  px?: number;
+}) {
+  const meta = CATEGORY_META[type];
+  const url = vendorLogoUrl(vendor, px);
+  const [errored, setErrored] = useState(false);
+  const showLogo = url && !errored;
+
+  return (
+    <div
+      className="flex-none flex items-center justify-center rounded-lg overflow-hidden"
+      style={{
+        width: size,
+        height: size,
+        background: showLogo ? "#ffffff" : `${meta.accent}1a`,
+        color: meta.accent,
+        boxShadow: showLogo ? "0 0 0 1px var(--border)" : `0 0 24px ${meta.accent}33 inset`,
+      }}
+      aria-hidden
+    >
+      {showLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url!}
+          alt=""
+          width={size}
+          height={size}
+          style={{ width: size, height: size, objectFit: "contain" }}
+          onError={() => setErrored(true)}
+          loading="lazy"
+        />
+      ) : (
+        <meta.Icon size={Math.round(size * 0.55)} strokeWidth={1.75} />
+      )}
+    </div>
+  );
 }
 
 // ============================================================================
@@ -104,12 +165,7 @@ export function ConfirmationCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="text-2xl flex-none"
-              style={{ filter: `drop-shadow(0 0 12px ${meta.accent}55)` }}
-            >
-              {meta.icon}
-            </div>
+            <BrandLogo vendor={c.vendor} type={c.type} size={36} px={72} />
             <div className="min-w-0">
               <div className="font-bold truncate">{c.title}</div>
               <div className="text-xs text-[var(--muted)] mt-0.5 truncate">
@@ -434,7 +490,7 @@ function TimelineItem({ c }: { c: Confirmation }) {
       className="steel p-3 flex items-center gap-3"
       style={{ borderLeft: `3px solid ${meta.accent}` }}
     >
-      <div className="text-xl flex-none">{meta.icon}</div>
+      <BrandLogo vendor={c.vendor} type={c.type} size={28} px={56} />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium truncate">{c.title}</div>
         <div className="text-xs text-[var(--muted)] truncate">
@@ -527,7 +583,9 @@ function CategoryBar({ row, max }: { row: CategoryTotal; max: number }) {
     <div>
       <div className="flex items-center justify-between text-sm mb-1">
         <div className="flex items-center gap-2">
-          <span>{meta.icon}</span>
+          <span style={{ color: meta.accent }} aria-hidden>
+            <meta.Icon size={14} strokeWidth={1.75} />
+          </span>
           <span>{meta.label}</span>
           <span className="text-[var(--muted)] text-xs">({row.count})</span>
         </div>

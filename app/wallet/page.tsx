@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Inbox, Plus, Share2, X } from "lucide-react";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
 import {
   type Confirmation,
   addConfirmation,
@@ -14,8 +16,8 @@ import {
   updateConfirmation,
 } from "@/lib/wallet";
 import { createShare } from "@/lib/wallet-share";
-import { loadTrips } from "@/lib/storage";
-import type { Trip } from "@/lib/types";
+import { loadTrips, upsertTrip } from "@/lib/storage";
+import type { Trip, TripPreferences } from "@/lib/types";
 import { ConfirmationCard, SpendingView, TimelineView } from "./_components";
 
 type ViewMode = "cards" | "timeline" | "spending";
@@ -195,17 +197,28 @@ Total: $345.00`,
           {items.length > 0 && (
             <button
               onClick={handleShare}
-              className="btn-steel px-4 py-2.5 text-sm"
+              className="btn-steel px-4 py-2.5 text-sm inline-flex items-center gap-2"
               title="Create a shareable link to this wallet"
             >
-              ↗ Share
+              <Share2 size={14} strokeWidth={1.75} aria-hidden />
+              Share
             </button>
           )}
           <button
             onClick={() => setShowInput((v) => !v)}
-            className="btn-primary px-5 py-2.5 text-sm"
+            className="btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-2"
           >
-            {showInput ? "Cancel" : "+ Add confirmation"}
+            {showInput ? (
+              <>
+                <X size={14} strokeWidth={1.75} aria-hidden />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus size={14} strokeWidth={1.75} aria-hidden />
+                Add confirmation
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -269,7 +282,9 @@ Total: $345.00`,
 
       {items.length === 0 && !showInput && (
         <div className="steel mt-10 p-12 text-center">
-          <div className="text-6xl mb-5">📨</div>
+          <div className="mb-5 flex justify-center text-[var(--muted)]" aria-hidden>
+            <Inbox size={56} strokeWidth={1.25} />
+          </div>
           <h3 className="text-2xl font-bold tracking-tight">
             Nothing in your wallet yet
           </h3>
@@ -315,6 +330,23 @@ Total: $345.00`,
               ))}
             </select>
           </div>
+
+          {(() => {
+            if (tripFilter === "all" || tripFilter === "unfiled") return null;
+            const trip = trips.find((t) => t.id === tripFilter);
+            if (!trip) return null;
+            return (
+              <TripPreferencesPanel
+                value={trip.preferences}
+                onChange={(preferences: TripPreferences) => {
+                  const next: Trip = { ...trip, preferences };
+                  upsertTrip(next);
+                  setTrips((all) => all.map((t) => (t.id === trip.id ? next : t)));
+                }}
+                storageKey={`voyage:trip-prefs-open:${trip.id}`}
+              />
+            );
+          })()}
 
           {view === "cards" && (
             <div className="mt-6 space-y-8">
