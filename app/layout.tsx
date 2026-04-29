@@ -5,7 +5,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
 import { SwRegister } from "@/components/SwRegister";
-import CookieBanner from "@/components/CookieBanner";
+import CookieConsent from "@/components/CookieConsent";
 import ClientObservability from "@/components/ClientObservability";
 import AssistantWidget from "@/components/AssistantWidget";
 import Toaster from "@/components/Toaster";
@@ -199,7 +199,10 @@ export default function RootLayout({
               </div>
             </div>
           </footer>
-          <CookieBanner />
+          {/* Track 8 — CookieConsent supersedes CookieBanner with per-category
+              toggles + server registry. CookieBanner kept around for the
+              import-only path / legacy storage migration. */}
+          <CookieConsent />
           <AssistantWidget />
           <Toaster />
           <Shortcuts />

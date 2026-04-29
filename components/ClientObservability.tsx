@@ -3,13 +3,21 @@
 import { useEffect } from "react";
 import { initAnalytics, setAnalyticsConsent } from "@/lib/analytics";
 import { initSentry } from "@/lib/sentry-client";
+import { getConsent } from "@/lib/consent";
 
 const KEY = "voyage:cookie-consent";
 
 export default function ClientObservability() {
   useEffect(() => {
-    // Sentry can run regardless of analytics consent — it's about catching
-    // bugs, scoped to error events only and we set sendDefaultPii=false.
+    // Track 8 GDPR/CCPA gate: analytics SDKs must not initialize unless the
+    // user has affirmatively opted in. Sentry is the one exception — it's
+    // scoped to error capture with sendDefaultPii=false, which we treat as a
+    // legitimate-interest legal basis.
+    if (!getConsent("analytics")) {
+      initSentry();
+      return;
+    }
+
     initSentry();
 
     // Initialize analytics in opted-out mode; flip if consent says "all".
