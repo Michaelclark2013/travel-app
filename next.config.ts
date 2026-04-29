@@ -33,10 +33,11 @@ const SECURITY_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+// Pin Turbopack's workspace root to this directory so the build doesn't
+// walk up the filesystem looking for a parent lockfile. Important for the
+// nested-worktree development workflow used by the multi-track team. Has no
+// effect at runtime — purely a build-time hint.
 const nextConfig: NextConfig = {
-  // Pin the Turbopack root to this directory so the build doesn't pick up the
-  // sibling lockfile in the parent (which inadvertently pulls in a
-  // middleware.ts that lives outside this worktree).
   turbopack: {
     root: path.resolve(__dirname),
   },
