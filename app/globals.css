@@ -1,27 +1,47 @@
 @import "tailwindcss";
 
+/*
+ * Voyage redesign — Direction A "Slate Teal" tokens.
+ *
+ * Pivot from the previous dark-cyan-glass aesthetic to a cream-paper /
+ * slate-teal / Space-Grotesk identity targeting the 18–28 audience. The
+ * primary surface is a warm near-white; ink is a deep neutral; the
+ * accent is a calm slate teal that's easy on the eyes for long sessions;
+ * terracotta is the warm secondary pop. Source of truth for colors lives
+ * in the Voyage Redesign design bundle (chats/chat1.md and project/direction-a.jsx).
+ *
+ * Why these specific values:
+ *   #FBFAF6 = soft warm white (bg) — final softening the user asked for
+ *   #1A1816 = ink — high contrast over cream without going pure black
+ *   #3A5A6B = slate teal — natural / travel-adjacent without lime fatigue
+ *   #B5512E = muted terracotta — secondary pop for warm moments
+ *
+ * Variable names are kept stable so existing components (steel/.surface,
+ * .btn-primary, etc.) keep compiling without per-file edits — they just
+ * inherit the new look automatically.
+ */
 :root {
-  --background: #07080d;
-  --background-soft: #0d1018;
-  --foreground: #e8eaf0;
-  --muted: #8a90a3;
-  --muted-soft: #5a6075;
-  --card: rgba(255, 255, 255, 0.025);
-  --card-strong: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --edge: rgba(255, 255, 255, 0.08);
-  --edge-strong: rgba(255, 255, 255, 0.14);
-  --edge-light: rgba(255, 255, 255, 0.45);
-  --hairline: rgba(255, 255, 255, 0.06);
-  --accent: #22d3ee;
-  --accent-soft: rgba(34, 211, 238, 0.16);
-  --accent-glow: rgba(34, 211, 238, 0.45);
-  --accent-foreground: #001218;
-  --primary: #f4f5fa;
-  --violet: #a78bfa;
-  --rose: #fb7185;
-  --danger: #fb7185;
+  --background: #fbfaf6;
+  --background-soft: #f2efe6;
+  --foreground: #1a1816;
+  --muted: #5a574e;
+  --muted-soft: #8a8678;
+  --card: #ffffff;
+  --card-strong: #ffffff;
+  --border: rgba(26, 24, 22, 0.08);
+  --border-strong: rgba(26, 24, 22, 0.16);
+  --edge: rgba(26, 24, 22, 0.08);
+  --edge-strong: rgba(26, 24, 22, 0.16);
+  --edge-light: rgba(26, 24, 22, 0.45);
+  --hairline: rgba(26, 24, 22, 0.06);
+  --accent: #3a5a6b;
+  --accent-soft: rgba(58, 90, 107, 0.16);
+  --accent-glow: rgba(58, 90, 107, 0.35);
+  --accent-foreground: #ffffff;
+  --primary: #1a1816;
+  --violet: #6b5a8a; /* deprecated — kept so legacy components compile */
+  --rose: #b5512e;
+  --danger: #b5512e;
 }
 
 @theme inline {
@@ -33,7 +53,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-primary: var(--primary);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-space-grotesk), var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -41,12 +61,15 @@ html,
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Space Grotesk per design direction A. Falls through to Geist Sans
+     and -apple-system if the variable font fails to load. */
   font-family:
+    var(--font-space-grotesk),
+    var(--font-geist-sans),
     -apple-system,
     BlinkMacSystemFont,
     "SF Pro Text",
     "SF Pro Display",
-    var(--font-geist-sans),
     system-ui,
     sans-serif;
   /* iOS-native basics: never allow horizontal scroll, smooth momentum
@@ -57,27 +80,35 @@ body {
   -webkit-overflow-scrolling: touch;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
+  /* Tighter heading tracking that pairs with Space Grotesk's geometry. */
+  letter-spacing: -0.01em;
 }
 
 body {
   position: relative;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  /* Subtle paper texture: two soft warm wash gradients in the corners,
+     and a faint dotted grid that reads as travel-zine ruled paper rather
+     than the previous cyan-glow-on-grid surface. */
   background-image:
     radial-gradient(
-      1200px 600px at 80% -10%,
-      rgba(34, 211, 238, 0.08),
+      1100px 600px at 85% -10%,
+      rgba(58, 90, 107, 0.08),
       transparent 60%
     ),
     radial-gradient(
-      900px 500px at -10% 30%,
-      rgba(167, 139, 250, 0.07),
+      900px 500px at -10% 25%,
+      rgba(181, 81, 46, 0.06),
       transparent 60%
     ),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: auto, auto, 48px 48px, 48px 48px;
-  background-attachment: fixed, fixed, fixed, fixed;
+    radial-gradient(
+      circle at 1px 1px,
+      rgba(26, 24, 22, 0.05) 1px,
+      transparent 0
+    );
+  background-size: auto, auto, 22px 22px;
+  background-attachment: fixed, fixed, fixed;
 }
 
 * {
@@ -121,17 +152,22 @@ main {
   color: var(--foreground);
 }
 
+/* Light-theme glow: a soft slate-teal halo instead of the prior cyan
+   neon. Used by .glow-ring + .text-glow on hero CTAs / active tabs. */
 .text-glow {
-  text-shadow: 0 0 24px var(--accent-glow);
+  text-shadow: 0 0 18px var(--accent-glow);
 }
 
 .glow-ring {
   box-shadow:
     0 0 0 1px var(--accent),
-    0 0 24px var(--accent-glow);
+    0 0 18px var(--accent-glow);
 }
 
 @layer components {
+  /* Surfaces are now actual paper cards (white) sitting on warm cream,
+     with hairline ink borders. The blur is a no-op on solid white — kept
+     for compatibility with components still passing translucent overlays. */
   .surface {
     background: var(--card);
     border: 1px solid var(--border);
@@ -146,7 +182,8 @@ main {
     -webkit-backdrop-filter: blur(12px);
   }
 
-  /* "steel" alias = glass surface, kept so newer pages compile. */
+  /* Steel alias kept so components written for the v1 dark-glass era
+     still compile and read well on cream paper. */
   .steel {
     background: var(--card);
     border: 1px solid var(--border);
@@ -160,48 +197,51 @@ main {
   }
 
   .angle-tr {
-    /* Subtle rounded look — keeping the cyan vibe instead of polygon cut. */
     border-radius: 16px;
   }
   .angle-tr-lg {
     border-radius: 20px;
   }
 
-  /* Primary CTA — cyan gradient with glow */
+  /* Primary CTA — flat ink button (deep neutral) like the design's
+     "view" / "book" pills. The previous cyan gradient + glow doesn't
+     translate to cream paper; a confident dark pill is the right move. */
   .btn-primary,
   .btn-accent {
-    background: linear-gradient(180deg, #2dd4ff 0%, #0ab8d6 100%);
-    color: var(--accent-foreground);
-    font-weight: 600;
+    background: var(--foreground);
+    color: var(--background);
+    font-weight: 700;
     border-radius: 9999px;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-      0 0 0 1px rgba(34, 211, 238, 0.4),
-      0 6px 24px rgba(34, 211, 238, 0.25);
-    transition: filter 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 4px 14px rgba(26, 24, 22, 0.18);
+    transition:
+      filter 0.15s ease,
+      transform 0.15s ease,
+      background 0.15s ease;
   }
   .btn-primary:hover,
   .btn-accent:hover {
-    filter: brightness(1.1);
+    background: var(--accent);
+    color: var(--accent-foreground);
   }
   .btn-primary:active,
   .btn-accent:active {
     transform: translateY(0.5px);
   }
 
-  /* Secondary CTA — glass with border */
+  /* Secondary CTA — outlined paper card. Used for "Later" / "Cancel"
+     style ghost actions. */
   .btn-ghost,
   .btn-steel {
-    background: var(--card-strong);
+    background: var(--card);
     border: 1px solid var(--border-strong);
     color: var(--foreground);
     border-radius: 9999px;
-    font-weight: 500;
+    font-weight: 600;
     transition: background 0.15s ease;
   }
   .btn-ghost:hover,
   .btn-steel:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--background-soft);
   }
 
   .btn-danger {
@@ -214,18 +254,20 @@ main {
   .input {
     width: 100%;
     height: 44px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--card);
     border: 1px solid var(--border-strong);
     color: var(--foreground);
     padding: 0 14px;
     font-size: 15px;
     outline: none;
     border-radius: 12px;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
   }
   .input:focus {
-    border-color: rgba(34, 211, 238, 0.55);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--accent);
+    background: var(--card);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .input::placeholder {
@@ -233,10 +275,11 @@ main {
   }
 }
 
+/* Light color scheme for native form controls. */
 input,
 textarea,
 select {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @keyframes pulse-dot {
@@ -266,7 +309,7 @@ select {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.06),
+    rgba(26, 24, 22, 0.06),
     transparent
   );
   background-size: 200% 100%;
