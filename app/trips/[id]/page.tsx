@@ -1,26 +1,85 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { deleteTrip, getTrip, upsertTrip } from "@/lib/storage";
 import { useRequireAuth } from "@/components/AuthProvider";
-import { TripPreferencesPanel } from "@/components/TripPreferencesPanel";
-import { TripCommitmentsPanel } from "@/components/TripCommitmentsPanel";
-import { TripWorkoutsPanel } from "@/components/TripWorkoutsPanel";
-import { TripPackingPanel } from "@/components/TripPackingPanel";
 import { TripLiveBanner } from "@/components/TripLiveBanner";
-import { CurrencyConverter } from "@/components/CurrencyConverter";
-import { DestinationIntelPanel } from "@/components/DestinationIntelPanel";
-import {
-  AirportCompanion,
-  DepartureChecklist,
-  EventsCard,
-  JetLagCard,
-  VoiceCommandButton,
-} from "@/components/TripExtras";
 import { LocationImageEl } from "@/components/LocationImage";
 import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
+
+// Track B (perf): the trip detail page bundles a dozen heavy collapsible
+// panels (preferences alone is 52KB). Most users never expand them on first
+// load, so we lazy-load each via next/dynamic. Each gets a tiny skeleton so
+// the layout doesn't jump while the bundle streams in.
+const PanelSkeleton = ({ label }: { label: string }) => (
+  <div
+    className="steel mt-6 p-6 animate-pulse"
+    aria-busy="true"
+    aria-label={`Loading ${label}`}
+  >
+    <div className="h-3 w-32 rounded bg-white/10" />
+    <div className="mt-4 h-3 w-2/3 rounded bg-white/5" />
+  </div>
+);
+
+const TripPreferencesPanel = dynamic(
+  () =>
+    import("@/components/TripPreferencesPanel").then(
+      (m) => m.TripPreferencesPanel,
+    ),
+  { loading: () => <PanelSkeleton label="trip preferences" /> },
+);
+const TripCommitmentsPanel = dynamic(
+  () =>
+    import("@/components/TripCommitmentsPanel").then(
+      (m) => m.TripCommitmentsPanel,
+    ),
+  { loading: () => <PanelSkeleton label="trip commitments" /> },
+);
+const TripWorkoutsPanel = dynamic(
+  () =>
+    import("@/components/TripWorkoutsPanel").then((m) => m.TripWorkoutsPanel),
+  { loading: () => <PanelSkeleton label="trip workouts" /> },
+);
+const TripPackingPanel = dynamic(
+  () => import("@/components/TripPackingPanel").then((m) => m.TripPackingPanel),
+  { loading: () => <PanelSkeleton label="trip packing list" /> },
+);
+const CurrencyConverter = dynamic(
+  () =>
+    import("@/components/CurrencyConverter").then((m) => m.CurrencyConverter),
+  { loading: () => <PanelSkeleton label="currency converter" /> },
+);
+const DestinationIntelPanel = dynamic(
+  () =>
+    import("@/components/DestinationIntelPanel").then(
+      (m) => m.DestinationIntelPanel,
+    ),
+  { loading: () => <PanelSkeleton label="destination intel" /> },
+);
+const AirportCompanion = dynamic(
+  () => import("@/components/TripExtras").then((m) => m.AirportCompanion),
+  { loading: () => null },
+);
+const DepartureChecklist = dynamic(
+  () => import("@/components/TripExtras").then((m) => m.DepartureChecklist),
+  { loading: () => null },
+);
+const EventsCard = dynamic(
+  () => import("@/components/TripExtras").then((m) => m.EventsCard),
+  { loading: () => <PanelSkeleton label="local events" /> },
+);
+const JetLagCard = dynamic(
+  () => import("@/components/TripExtras").then((m) => m.JetLagCard),
+  { loading: () => <PanelSkeleton label="jet lag plan" /> },
+);
+const VoiceCommandButton = dynamic(
+  () => import("@/components/TripExtras").then((m) => m.VoiceCommandButton),
+  { loading: () => null },
+);
 
 function LegRow({ item }: { item: ItineraryItem }) {
   const leg = item.legBefore!;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import {
   Car,
   Hotel as HotelIcon,
@@ -124,8 +125,9 @@ function BrandLogo({
       aria-hidden
     >
       {showLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        // Vendor logo from logo.clearbit.com (allowlisted in next.config.ts).
+        // The wrapper has aria-hidden, so the alt text here is decorative.
+        <Image
           src={url!}
           alt=""
           width={size}
@@ -135,7 +137,7 @@ function BrandLogo({
           loading="lazy"
         />
       ) : (
-        <meta.Icon size={Math.round(size * 0.55)} strokeWidth={1.75} />
+        <meta.Icon size={Math.round(size * 0.55)} strokeWidth={1.75} aria-hidden />
       )}
     </div>
   );
@@ -274,11 +276,14 @@ export function ConfirmationCard({
 
         {showQr && (
           <div className="mt-4 flex items-center justify-center bg-white rounded-md p-3">
-            <img
+            {/* qrDataUrl returns an inline SVG data: URI; pass `unoptimized`
+                so we don't try to push a data URI through the optimizer. */}
+            <Image
               src={qrDataUrl(c.reference, { size: 160 })}
-              alt={`QR code for ${c.reference}`}
+              alt={`Scannable QR code encoding booking reference ${c.reference}`}
               width={160}
               height={160}
+              unoptimized
             />
           </div>
         )}
