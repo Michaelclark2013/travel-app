@@ -31,6 +31,7 @@ type NavItem = {
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", perm: "metrics.read" },
   { href: "/admin/users", label: "Users", perm: "users.read" },
+  { href: "/admin/content", label: "Content", perm: "content.read" },
   { href: "/admin/moderation", label: "Moderation", perm: "moderation.review" },
   { href: "/admin/metrics", label: "Metrics", perm: "metrics.read" },
   { href: "/admin/billing", label: "Billing", perm: "billing.read" },
