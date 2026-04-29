@@ -36,6 +36,8 @@ const NAV: NavItem[] = [
   { href: "/admin/metrics", label: "Metrics", perm: "metrics.read" },
   { href: "/admin/billing", label: "Billing", perm: "billing.read" },
   { href: "/admin/flags", label: "Flags", perm: "flags.read" },
+  { href: "/admin/maintenance", label: "Maintenance", perm: "flags.write" },
+  { href: "/admin/incidents", label: "Incidents", perm: "flags.read" },
   { href: "/admin/inbox", label: "Inbox", perm: "support.read" },
   { href: "/admin/compliance", label: "Compliance", perm: "compliance.read" },
   { href: "/admin/search", label: "AI Search", perm: "users.read" },
