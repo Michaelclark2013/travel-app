@@ -5,10 +5,10 @@ import {
   type AmadeusHotel,
 } from "@/lib/services/amadeus";
 import { generateHotels } from "@/lib/mock-data";
-
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  // Rate limiting is enforced globally in middleware.ts.
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city") ?? "Tokyo";
   const checkIn =

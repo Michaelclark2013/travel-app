@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { websiteLd } from "@/lib/seo";
 
 const PRESETS = [
   { city: "Tokyo", code: "TYO", days: 7, vibe: "Food & culture", emoji: "🗼" },
@@ -12,6 +13,11 @@ const PRESETS = [
 export default function Home() {
   return (
     <div>
+      {/* Track F (SEO): schema.org/WebSite + sitelinks-search-box hint. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: websiteLd() }}
+      />
       {/* HERO */}
       <section className="mx-auto max-w-6xl px-6 pt-20 md:pt-24 pb-12">
         <div className="text-center">
@@ -28,23 +34,17 @@ export default function Home() {
             From cheapest flights to neighborhood-clustered itineraries —
             Voyage routes your entire trip in one place.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/sign-up"
-              className="btn-primary inline-flex items-center gap-2 px-7 py-3.5 font-medium"
-            >
-              Start planning
-              <span aria-hidden>→</span>
-            </Link>
+          <div className="mt-10 flex items-center justify-center">
             <Link
               href="/sign-in"
-              className="btn-ghost inline-flex items-center gap-2 px-7 py-3.5 font-medium"
+              className="btn-primary inline-flex items-center gap-2 px-8 py-3.5 font-medium text-base"
             >
-              Sign in
+              Launch Voyage
+              <span aria-hidden>→</span>
             </Link>
           </div>
           <p className="mt-4 text-xs text-[var(--muted)] font-mono">
-            Free · No credit card · 30 seconds to first trip
+            Free · No sign-up · 30 seconds to first trip
           </p>
 
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--border)]">
@@ -413,10 +413,10 @@ export default function Home() {
             Free forever. No credit card. Plan your first trip in under a minute.
           </p>
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="btn-primary inline-flex items-center justify-center gap-2 px-8 py-4 mt-8 text-base font-medium"
           >
-            Get started
+            Launch Voyage →
           </Link>
         </div>
       </section>

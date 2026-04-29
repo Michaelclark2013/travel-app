@@ -5,10 +5,11 @@ import {
   type AmadeusFlight,
 } from "@/lib/services/amadeus";
 import { generateFlights } from "@/lib/mock-data";
-
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  // Rate limiting is enforced globally in middleware.ts; route-level handlers
+  // can stay focused on business logic.
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from") ?? "JFK";
   const to = searchParams.get("to") ?? "NRT";

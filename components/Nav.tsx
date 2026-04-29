@@ -1,12 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Bell, MessageCircle, Search as SearchIcon } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import {
+  unreadNotificationCount,
+  unreadThreadCount,
+} from "@/lib/social";
+import { openGlobalSearch } from "@/components/GlobalSearch";
 
 export default function Nav() {
   const { user, ready, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [unreadDms, setUnreadDms] = useState(0);
+
+  useEffect(() => {
+    if (!ready || !user) return;
+    function refresh() {
+      try {
+        setUnreadNotifs(unreadNotificationCount());
+        setUnreadDms(unreadThreadCount());
+      } catch {}
+    }
+    refresh();
+    const id = window.setInterval(refresh, 15_000);
+    const dm = () => refresh();
+    window.addEventListener("voyage:dm-updated", dm);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("voyage:dm-updated", dm);
+    };
+  }, [ready, user]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/70 backdrop-blur-xl">
@@ -26,14 +52,55 @@ export default function Nav() {
         </Link>
         <nav className="hidden lg:flex items-center gap-0.5 text-sm">
           <NavLink href="/plan">Plan</NavLink>
-          <NavLink href="/inspire">Inspire</NavLink>
+          <NavLink href="/explore">Explore</NavLink>
           <NavLink href="/flights">Flights</NavLink>
           <NavLink href="/hotels">Hotels</NavLink>
-          <NavLink href="/nearby">Nearby</NavLink>
           <NavLink href="/guides">Guides</NavLink>
           <NavLink href="/trips">Trips</NavLink>
         </nav>
         <div className="flex items-center gap-2">
+          {ready && user && (
+            <>
+              <button
+                onClick={openGlobalSearch}
+                aria-label="Search"
+                title="Search (or press /)"
+                className="h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center text-[var(--foreground)]/85 hover:text-white transition"
+              >
+                <SearchIcon size={18} strokeWidth={1.75} />
+              </button>
+              <Link
+                href="/messages"
+                aria-label={
+                  unreadDms > 0 ? `Messages — ${unreadDms} unread` : "Messages"
+                }
+                className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center text-[var(--foreground)]/85 hover:text-white transition"
+              >
+                <MessageCircle size={18} strokeWidth={1.75} />
+                {unreadDms > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[var(--accent)] text-black text-[9px] font-mono font-bold flex items-center justify-center">
+                    {unreadDms > 9 ? "9+" : unreadDms}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/notifications"
+                aria-label={
+                  unreadNotifs > 0
+                    ? `Notifications — ${unreadNotifs} unread`
+                    : "Notifications"
+                }
+                className="relative h-9 w-9 rounded-md hover:bg-white/5 flex items-center justify-center text-[var(--foreground)]/85 hover:text-white transition"
+              >
+                <Bell size={18} strokeWidth={1.75} />
+                {unreadNotifs > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-rose-400 text-black text-[9px] font-mono font-bold flex items-center justify-center">
+                    {unreadNotifs > 9 ? "9+" : unreadNotifs}
+                  </span>
+                )}
+              </Link>
+            </>
+          )}
           {!ready ? (
             <div className="h-9 w-24 rounded-md bg-[var(--card-strong)] shimmer" />
           ) : user ? (
@@ -58,8 +125,29 @@ export default function Nav() {
                       {user.email}
                     </div>
                   </div>
+                  {/* Primary — what users come here for */}
+                  <DropLink href="/profile" onClick={() => setMenuOpen(false)}>
+                    Your profile
+                  </DropLink>
                   <DropLink href="/trips" onClick={() => setMenuOpen(false)}>
                     My trips
+                  </DropLink>
+                  <DropLink href="/profile/following" onClick={() => setMenuOpen(false)}>
+                    Following
+                  </DropLink>
+                  <DropLink href="/notifications" onClick={() => setMenuOpen(false)}>
+                    Notifications
+                  </DropLink>
+                  <DropLink href="/messages" onClick={() => setMenuOpen(false)}>
+                    Messages
+                  </DropLink>
+                  <div className="border-t border-[var(--border)] my-1" />
+                  {/* Trip-prep tools */}
+                  <DropLink href="/plan" onClick={() => setMenuOpen(false)}>
+                    + New trip
+                  </DropLink>
+                  <DropLink href="/profile/capture" onClick={() => setMenuOpen(false)}>
+                    📷 Catch a moment
                   </DropLink>
                   <DropLink href="/wallet" onClick={() => setMenuOpen(false)}>
                     Trip wallet
@@ -72,19 +160,6 @@ export default function Nav() {
                   </DropLink>
                   <DropLink href="/sos" onClick={() => setMenuOpen(false)}>
                     Emergency SOS
-                  </DropLink>
-                  <DropLink href="/profile" onClick={() => setMenuOpen(false)}>
-                    Profile
-                  </DropLink>
-                  <div className="border-t border-[var(--border)] my-1" />
-                  <DropLink href="/plan" onClick={() => setMenuOpen(false)}>
-                    + New trip
-                  </DropLink>
-                  <DropLink href="/inspire" onClick={() => setMenuOpen(false)}>
-                    Inspire me
-                  </DropLink>
-                  <DropLink href="/guides" onClick={() => setMenuOpen(false)}>
-                    Local guides
                   </DropLink>
                   <button
                     onClick={() => {
@@ -99,20 +174,12 @@ export default function Nav() {
               )}
             </div>
           ) : (
-            <>
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium text-[var(--foreground)]/80 hover:text-[var(--foreground)] px-3 py-1.5"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/sign-up"
-                className="btn-primary text-sm font-medium px-4 py-1.5"
-              >
-                Sign up
-              </Link>
-            </>
+            <Link
+              href="/sign-in"
+              className="btn-primary text-sm font-medium px-4 py-1.5"
+            >
+              Launch app
+            </Link>
           )}
         </div>
       </div>

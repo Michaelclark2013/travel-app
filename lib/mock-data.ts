@@ -307,3 +307,62 @@ export function generateItinerary(
 
   return days;
 }
+
+import type { TripStop } from "./types";
+import { stopSchedule } from "./trip-stops";
+
+/**
+ * Multi-stop variant — composes per-stop itineraries and labels each day with
+ * its parent stop. Inter-stop transit (bus/train/flight depending on distance)
+ * gets injected as the first item of each new stop's first day.
+ */
+export function generateMultiStopItinerary(
+  stops: TripStop[],
+  startDate: string,
+  mode: TransportMode = "transit"
+): ItineraryDay[] {
+  const schedule = stopSchedule(stops, startDate);
+  const allDays: ItineraryDay[] = [];
+
+  for (let i = 0; i < schedule.length; i++) {
+    const { stop, from, to } = schedule[i];
+    const days = generateItinerary(stop.destination, from, to, mode);
+    // Tag every day with which stop it belongs to.
+    for (const d of days) {
+      d.stopId = stop.id;
+      d.stopDestination = stop.destination;
+    }
+
+    // Replace the auto-generated "Arrive in X" item on day 0 with a more
+    // accurate transit-from-previous step for stops > 0.
+    if (i > 0 && days.length > 0) {
+      const prev = schedule[i - 1].stop.destination;
+      const first = days[0];
+      // Drop the existing arrival entry (the single-stop generator inserted one)
+      first.items = first.items.filter(
+        (item) => item.id !== `${first.date}-arrival`
+      );
+      first.items.unshift({
+        id: `${first.date}-transit-from-${i - 1}`,
+        time: "10:00",
+        title: `${prev} → ${stop.destination}`,
+        description: `Transit from ${prev}.`,
+        category: "transit",
+        location: undefined,
+      });
+    }
+
+    // Drop the trailing "Depart" item on every stop except the last so it
+    // doesn't bloat mid-trip.
+    if (i < schedule.length - 1 && days.length > 0) {
+      const last = days[days.length - 1];
+      last.items = last.items.filter(
+        (item) => item.id !== `${last.date}-depart`
+      );
+    }
+
+    allDays.push(...days);
+  }
+
+  return allDays;
+}

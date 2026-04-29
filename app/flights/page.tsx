@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { generateFlights } from "@/lib/mock-data";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { flightAffiliateUrl } from "@/lib/affiliates";
+import PricePrediction from "@/components/PricePrediction";
+import { SkeletonList } from "@/components/Skeleton";
+import { loadRecentSearches, pushRecentSearch } from "@/lib/recents";
 import type { Flight } from "@/lib/types";
 
 function todayISO(offsetDays = 0) {
@@ -101,12 +105,28 @@ export default function FlightsPage() {
           <Input label="To" value={to} onChange={setTo} />
           <DateInput label="Depart" value={date} onChange={setDate} />
           <button
-            onClick={() => setSearched(true)}
+            onClick={() => {
+              setSearched(true);
+              pushRecentSearch({
+                kind: "flight",
+                label: `${from} → ${to} · ${date}`,
+                key: `flight:${from}:${to}:${date}`,
+                params: { from, to, date },
+              });
+            }}
             className="btn-primary self-end px-6 py-3 text-base"
           >
             Search
           </button>
         </div>
+        <FlightRecentChips
+          onPick={({ from: f, to: t, date: d }) => {
+            setFrom(f);
+            setTo(t);
+            setDate(d);
+            setSearched(true);
+          }}
+        />
       </div>
 
       {searched && (
@@ -141,15 +161,28 @@ export default function FlightsPage() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {flights.length === 0 && (
-              <div className="steel p-10 text-center text-[var(--muted)]">
-                No flights match those filters.
+            {source === "loading" && <SkeletonList variant="flight" count={5} />}
+            {source !== "loading" && flights.length === 0 && (
+              <div className="steel p-10 text-center">
+                <div className="text-3xl mb-2">🪂</div>
+                <div className="font-semibold">No flights match those filters.</div>
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  Try widening the stop count, picking a different day, or
+                  switching origin/destination.
+                </p>
+                <button
+                  onClick={() => setMaxStops(2)}
+                  className="btn-ghost mt-4 px-4 py-2 text-xs"
+                >
+                  Reset filters
+                </button>
               </div>
             )}
-            {flights.map((f, i) => (
+            {source !== "loading" && flights.map((f, i) => (
               <FlightCard
                 key={f.id}
                 flight={f}
+                date={date}
                 cheapest={i === 0 && sort === "price"}
               />
             ))}
@@ -160,13 +193,56 @@ export default function FlightsPage() {
   );
 }
 
+function FlightRecentChips({
+  onPick,
+}: {
+  onPick: (params: { from: string; to: string; date: string }) => void;
+}) {
+  const [items, setItems] = useState<
+    { label: string; key: string; params: Record<string, string> }[]
+  >([]);
+  useEffect(() => {
+    setItems(loadRecentSearches("flight"));
+  }, []);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--muted)] uppercase mr-1 self-center">
+        Recent ·
+      </span>
+      {items.slice(0, 5).map((s) => (
+        <button
+          key={s.key}
+          onClick={() =>
+            onPick({
+              from: s.params.from!,
+              to: s.params.to!,
+              date: s.params.date!,
+            })
+          }
+          className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] hover:text-white hover:border-[var(--border-strong)]"
+        >
+          ← {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function FlightCard({
   flight,
+  date,
   cheapest,
 }: {
   flight: Flight;
+  date: string;
   cheapest: boolean;
 }) {
+  const bookUrl = flightAffiliateUrl({
+    from: flight.from,
+    to: flight.to,
+    date,
+  });
   return (
     <div className="steel p-5 flex items-center gap-6 hover:brightness-125 transition">
       <div className="flex h-12 w-12 items-center justify-center bg-black/50 border border-[var(--edge)] text-xl">
@@ -209,9 +285,21 @@ function FlightCard({
           </div>
         )}
         <div className="text-2xl font-bold tracking-tight">${flight.price}</div>
-        <button className="mt-1 text-xs text-[var(--muted)] hover:text-white">
-          Select →
-        </button>
+        <PricePrediction
+          kind="flight"
+          predictKey={`${flight.from}-${flight.to}-${date}`}
+          label={`${flight.from} → ${flight.to}, ${date}`}
+          price={flight.price}
+          compact
+        />
+        <a
+          href={bookUrl}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className="btn-primary inline-block mt-2 px-3 py-1.5 text-xs"
+        >
+          Book →
+        </a>
       </div>
     </div>
   );

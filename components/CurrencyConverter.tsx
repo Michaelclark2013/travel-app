@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronUp, Coins } from "lucide-react";
 import { USD_RATES } from "@/lib/wallet-rules";
+import { detectLocale } from "@/lib/locale-detect";
 
 const COMMON = [1, 5, 10, 20, 50, 100];
 
@@ -43,9 +44,15 @@ export function CurrencyConverter({
   storageKey?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [from, setFrom] = useState("USD");
+  // "from" defaults to user's home currency (London → GBP, Tokyo → JPY).
+  const [from, setFrom] = useState(() => {
+    if (typeof window === "undefined") return "USD";
+    return detectLocale()?.currency ?? "USD";
+  });
   const [to, setTo] = useState(detectDestinationCurrency(destination));
   const [amount, setAmount] = useState(initialAmount);
+  // Real FX rates fetched from /api/intel/fx; keys are USD-based ratios.
+  const [liveRates, setLiveRates] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,6 +63,30 @@ export function CurrencyConverter({
     setTo(detectDestinationCurrency(destination));
   }, [destination]);
 
+  // Pull live USD-base rates once. open.er-api returns rate-per-USD (1 USD =
+  // 0.93 EUR); we invert to match USD_RATES format (1 EUR = 1.07 USD), so the
+  // conversion formula stays identical regardless of source.
+  useEffect(() => {
+    let aborted = false;
+    fetch("/api/intel/fx?base=USD")
+      .then((r) => r.json())
+      .then((data) => {
+        if (aborted || !data?.ok) return;
+        const inverted: Record<string, number> = {};
+        for (const [k, v] of Object.entries(
+          data.rates as Record<string, number>
+        )) {
+          if (typeof v === "number" && v > 0) inverted[k] = 1 / v;
+        }
+        inverted.USD = 1;
+        setLiveRates(inverted);
+      })
+      .catch(() => {});
+    return () => {
+      aborted = true;
+    };
+  }, []);
+
   function toggle() {
     const next = !open;
     setOpen(next);
@@ -64,11 +95,12 @@ export function CurrencyConverter({
     }
   }
 
+  const rates = liveRates ?? USD_RATES;
   const result = useMemo(() => {
-    const fromUsd = USD_RATES[from] ?? 1;
-    const toUsd = USD_RATES[to] ?? 1;
+    const fromUsd = rates[from] ?? 1;
+    const toUsd = rates[to] ?? 1;
     return (amount * fromUsd) / toUsd;
-  }, [amount, from, to]);
+  }, [amount, from, to, rates]);
 
   const swap = () => {
     setFrom(to);
@@ -90,11 +122,16 @@ export function CurrencyConverter({
             aria-hidden
           />
           <div className="text-left">
-            <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
+            <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)] flex items-center gap-2">
               CURRENCY
+              {liveRates && (
+                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-300 tracking-normal font-normal">
+                  ● Live
+                </span>
+              )}
             </div>
             <div className="text-sm mt-0.5">
-              1 {from} = {((USD_RATES[from] ?? 1) / (USD_RATES[to] ?? 1)).toFixed(4)} {to}
+              1 {from} = {((rates[from] ?? 1) / (rates[to] ?? 1)).toFixed(4)} {to}
             </div>
           </div>
         </div>

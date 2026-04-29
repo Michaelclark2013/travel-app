@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { driveRoute, geocode, mapboxEnabled } from "@/lib/services/mapbox";
-
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  // Rate limiting is enforced globally in middleware.ts.
   const { searchParams } = new URL(req.url);
   const origin = searchParams.get("origin") ?? "";
   const destination = searchParams.get("destination") ?? "";

@@ -272,3 +272,21 @@ select {
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
+
+/*
+ * voyage-reel-pan — used by momentVideoTileStyle() in lib/social.ts to fake a
+ * "video reel" loop on mock moments that don't have a real recording yet.
+ * Pans the radial gradient highlights so the tile reads as moving footage
+ * rather than a still.
+ */
+@keyframes voyage-reel-pan {
+  0% {
+    background-position: 0% 0%, 100% 100%, 0 0;
+  }
+  50% {
+    background-position: 100% 30%, 0% 70%, 0 0;
+  }
+  100% {
+    background-position: 30% 100%, 70% 0%, 0 0;
+  }
+}

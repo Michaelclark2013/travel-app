@@ -46,11 +46,30 @@ function stringField(v: FormDataEntryValue | string | null | undefined): string 
   return undefined;
 }
 
+// Hard cap on body size — emails over this are almost certainly attacks
+// (gzip bombs, prompt-injection floods). 256KB covers any real confirmation.
+const MAX_BODY_BYTES = 256 * 1024;
+
 export async function POST(req: Request) {
+  // Reject oversized payloads early using Content-Length when present.
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared && declared > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: "Payload too large. Max 256KB." },
+      { status: 413 }
+    );
+  }
+
   const payload = await readBody(req);
   const body = (payload.body ?? "").trim();
   if (!body) {
     return NextResponse.json({ ok: false, error: "Empty body" }, { status: 400 });
+  }
+  if (body.length > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { ok: false, error: "Email body too large. Max 256KB." },
+      { status: 413 }
+    );
   }
 
   const composed = [

@@ -26,6 +26,25 @@ export type GeocodePlace = {
 };
 
 export async function GET(req: NextRequest) {
+  // Reverse-geocode mode — used by user-location.ts to convert GPS into a city.
+  if (req.nextUrl.searchParams.get("reverse") === "1") {
+    const lat = Number(req.nextUrl.searchParams.get("lat"));
+    const lng = Number(req.nextUrl.searchParams.get("lng"));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return NextResponse.json({ ok: false, error: "lat,lng required" }, { status: 400 });
+    }
+    try {
+      const place = await reverseGeocode(lat, lng);
+      return NextResponse.json({ ok: true, ...place });
+    } catch (err) {
+      console.error("[geocode reverse]", err);
+      return NextResponse.json(
+        { ok: false, error: "Reverse geocode failed" },
+        { status: 200 }
+      );
+    }
+  }
+
   const q = req.nextUrl.searchParams.get("q")?.trim();
   if (!q) {
     return NextResponse.json({ ok: true, results: [] });
@@ -40,6 +59,43 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   }
+}
+
+// Reverse geocode — Mapbox when keyed, Nominatim free fallback.
+async function reverseGeocode(
+  lat: number,
+  lng: number
+): Promise<{ name: string; city?: string; country?: string }> {
+  const token = process.env.MAPBOX_TOKEN;
+  if (token) {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=place,locality,neighborhood&access_token=${token}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`mapbox ${res.status}`);
+    const data = await res.json();
+    const feat = data?.features?.[0];
+    return {
+      name: feat?.text ?? feat?.place_name ?? `${lat.toFixed(2)}, ${lng.toFixed(2)}`,
+      city: feat?.text,
+      country: feat?.context?.find((c: { id: string }) =>
+        c.id?.startsWith("country")
+      )?.text,
+    };
+  }
+  // Nominatim fallback — free, no key. Respects 1 req/sec policy in practice.
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10`;
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: { "User-Agent": "voyage-app (reverse-geocode)" },
+  });
+  if (!res.ok) throw new Error(`nominatim ${res.status}`);
+  const data = await res.json();
+  const a = data?.address ?? {};
+  const city = a.city ?? a.town ?? a.village ?? a.county;
+  return {
+    name: city ?? data?.display_name ?? `${lat.toFixed(2)}, ${lng.toFixed(2)}`,
+    city,
+    country: a.country,
+  };
 }
 
 async function geocode(query: string): Promise<GeocodePlace[]> {

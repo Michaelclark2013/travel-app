@@ -43,6 +43,9 @@ export type ItineraryDay = {
   date: string;
   label: string;
   items: ItineraryItem[];
+  /** When this day belongs to a specific stop on a multi-destination trip. */
+  stopId?: string;
+  stopDestination?: string;
 };
 
 export type TripIntent =
@@ -246,6 +249,21 @@ export type TripPreferences = {
   updatedAt?: string;
 };
 
+/**
+ * A single leg of a multi-stop trip. The `destination` field on Trip remains
+ * the headline / primary stop for backward-compat; `stops` is the canonical
+ * source when present and includes the primary as its first entry.
+ */
+export type TripStop = {
+  id: string;
+  destination: string;
+  /** Number of nights spent at this stop. */
+  nights: number;
+  /** Optional inherited or stop-specific vibes. */
+  vibes?: string[];
+  notes?: string;
+};
+
 export type Trip = {
   id: string;
   destination: string;
@@ -267,15 +285,50 @@ export type Trip = {
   expenses?: TripExpense[];
   preferences?: TripPreferences;
   createdAt: string;
+  /**
+   * Multi-stop itineraries — when present + length>1, this trip visits more
+   * than one place. Single-stop trips can omit this and use `destination`
+   * directly.
+   */
+  stops?: TripStop[];
 };
+
+export type ExpenseCategory =
+  | "lodging"
+  | "transport"
+  | "parking"
+  | "food"
+  | "activities"
+  | "groceries"
+  | "shopping"
+  | "fees"
+  | "other";
+
+export type ExpenseSplitMode = "equal" | "custom" | "single-payer";
 
 export type TripExpense = {
   id: string;
   description: string;
+  /** Canonical USD value used for settle-up math. */
   amountUsd: number;
+  /** What the user actually paid in. Optional — falls back to USD. */
+  amountOriginal?: number;
+  currency?: string; // ISO 4217 (e.g. "JPY", "EUR")
+  /** Saved FX rate at the time of entry (1 unit of `currency` in USD). */
+  fxRateUsdPer?: number;
   paidBy: string;
+  /** Names of trip members the cost is split between. */
   splitAmong: string[];
+  /** When `custom`, splits explicitly per person; otherwise equal across splitAmong. */
+  splitMode?: ExpenseSplitMode;
+  customSplitsUsd?: { person: string; amountUsd: number }[];
+  category?: ExpenseCategory;
   date: string;
+  notes?: string;
+  /** Receipt image stored as data URI (small) or remote URL. */
+  receiptDataUri?: string;
+  /** Set when AI parsed the receipt. */
+  parsedByAi?: boolean;
 };
 
 export type CommitmentPriority = "must" | "flexible";
@@ -379,6 +432,20 @@ export type FitnessGoal =
   | "hotel-gym-ok";
 
 export type TravelerProfile = {
+  // Public-facing profile (Instagram-style header).
+  /** Display name shown big on the profile (e.g. "Amelia Earhart"). */
+  displayName?: string;
+  /** Handle shown as @username, used in shared trip URLs. */
+  username?: string;
+  /** Short bio under the avatar. */
+  bio?: string;
+  /** Travel-style chips the user picks (Adventure Seeker, Luxury Explorer, etc.). */
+  travelStyles?: string[];
+  /** External socials the user links to from their profile header. */
+  instagram?: string; // "@handle" or full URL — we normalize at render time
+  tiktok?: string;
+  website?: string;
+
   // Identity (rarely changes)
   fullName?: string;
   passportName?: string;

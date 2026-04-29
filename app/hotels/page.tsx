@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { generateHotels } from "@/lib/mock-data";
 import { useRequireAuth } from "@/components/AuthProvider";
+import { hotelDeepLink } from "@/lib/affiliates";
+import PricePrediction from "@/components/PricePrediction";
+import { badgeMeta, photoTruth } from "@/lib/photo-truth";
+import { SkeletonList } from "@/components/Skeleton";
+import { loadRecentSearches, pushRecentSearch } from "@/lib/recents";
 import type { Hotel } from "@/lib/types";
 
 function todayISO(offsetDays = 0) {
@@ -108,12 +113,29 @@ export default function HotelsPage() {
           />
           <NumInput label="Guests" value={guests} onChange={setGuests} />
           <button
-            onClick={() => setSearched(true)}
+            onClick={() => {
+              setSearched(true);
+              pushRecentSearch({
+                kind: "hotel",
+                label: `${city} · ${checkIn}`,
+                key: `hotel:${city}:${checkIn}:${checkOut}`,
+                params: { city, checkIn, checkOut, guests: String(guests) },
+              });
+            }}
             className="btn-primary self-end px-6 py-3 text-base"
           >
             Search
           </button>
         </div>
+        <HotelRecentChips
+          onPick={(p) => {
+            setCity(p.city);
+            setCheckIn(p.checkIn);
+            setCheckOut(p.checkOut);
+            setGuests(Number(p.guests ?? "2") || 2);
+            setSearched(true);
+          }}
+        />
       </div>
 
       {searched && (
@@ -134,8 +156,24 @@ export default function HotelsPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {hotels.map((h) => (
-              <HotelCard key={h.id} hotel={h} nights={nights} />
+            {source === "loading" && <SkeletonList variant="hotel" count={4} />}
+            {source !== "loading" && hotels.length === 0 && (
+              <div className="steel p-10 text-center md:col-span-2">
+                <div className="text-3xl mb-2">🛏️</div>
+                <div className="font-semibold">No hotels found.</div>
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  Try a wider city query or different dates.
+                </p>
+              </div>
+            )}
+            {source !== "loading" && hotels.map((h) => (
+              <HotelCard
+                key={h.id}
+                hotel={h}
+                nights={nights}
+                checkIn={checkIn}
+                checkOut={checkOut}
+              />
             ))}
           </div>
         </>
@@ -144,7 +182,62 @@ export default function HotelsPage() {
   );
 }
 
-function HotelCard({ hotel, nights }: { hotel: Hotel; nights: number }) {
+function HotelRecentChips({
+  onPick,
+}: {
+  onPick: (params: { city: string; checkIn: string; checkOut: string; guests?: string }) => void;
+}) {
+  const [items, setItems] = useState<
+    { label: string; key: string; params: Record<string, string> }[]
+  >([]);
+  useEffect(() => {
+    setItems(loadRecentSearches("hotel"));
+  }, []);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--muted)] uppercase mr-1 self-center">
+        Recent ·
+      </span>
+      {items.slice(0, 5).map((s) => (
+        <button
+          key={s.key}
+          onClick={() =>
+            onPick({
+              city: s.params.city!,
+              checkIn: s.params.checkIn!,
+              checkOut: s.params.checkOut!,
+              guests: s.params.guests,
+            })
+          }
+          className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] hover:text-white hover:border-[var(--border-strong)]"
+        >
+          ← {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HotelCard({
+  hotel,
+  nights,
+  checkIn,
+  checkOut,
+}: {
+  hotel: Hotel;
+  nights: number;
+  checkIn: string;
+  checkOut: string;
+}) {
+  const bookUrl = hotelDeepLink({
+    city: hotel.city,
+    hotelName: hotel.name,
+    checkIn,
+    checkOut,
+  });
+  const photo = photoTruth(hotel.id);
+  const photoBadge = badgeMeta(photo.badge);
   return (
     <div className="steel overflow-hidden hover:brightness-110 transition">
       <div
@@ -166,11 +259,26 @@ function HotelCard({ hotel, nights }: { hotel: Hotel; nights: number }) {
             </div>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-2 text-sm">
+        <div className="mt-3 flex items-center gap-2 text-sm flex-wrap">
           <span className="font-medium">⭐ {hotel.rating.toFixed(1)}</span>
           <span className="text-[var(--muted)]">
             ({hotel.reviews.toLocaleString()} reviews)
           </span>
+          <span
+            title={photoBadge.title}
+            className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${photoBadge.cls}`}
+          >
+            {photoBadge.label}
+          </span>
+        </div>
+        <div className="mt-2">
+          <PricePrediction
+            kind="hotel"
+            predictKey={`${hotel.id}-${checkIn}`}
+            label={`${hotel.name}, ${hotel.city}`}
+            price={hotel.pricePerNight}
+            compact
+          />
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {hotel.amenities.map((a) => (
@@ -187,7 +295,14 @@ function HotelCard({ hotel, nights }: { hotel: Hotel; nights: number }) {
             ${hotel.pricePerNight * nights} total · {nights} night
             {nights === 1 ? "" : "s"}
           </span>
-          <button className="btn-primary px-4 py-2 text-sm">Select</button>
+          <a
+            href={bookUrl}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="btn-primary px-4 py-2 text-sm"
+          >
+            Book
+          </a>
         </div>
       </div>
     </div>

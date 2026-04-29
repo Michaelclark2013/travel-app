@@ -20,7 +20,16 @@ import {
   VoiceCommandButton,
 } from "@/components/TripExtras";
 import { LocationImageEl } from "@/components/LocationImage";
-import type { ItineraryItem, Trip, TripExpense, TripPreferences } from "@/lib/types";
+import TravelIntel from "@/components/TravelIntel";
+import FriendSignals from "@/components/FriendSignals";
+import CheckoutBundle from "@/components/CheckoutBundle";
+import ScreenshotIntel from "@/components/ScreenshotIntel";
+import TripDoctor from "@/components/TripDoctor";
+import ExpenseTracker from "@/components/ExpenseTracker";
+import ShareSheet from "@/components/ShareSheet";
+import RestaurantsPanel from "@/components/RestaurantsPanel";
+import { isMultiStop, routeSummary, tripStops } from "@/lib/trip-stops";
+import type { ItineraryItem, Trip, TripPreferences } from "@/lib/types";
 
 function LegRow({ item }: { item: ItineraryItem }) {
   const leg = item.legBefore!;
@@ -149,42 +158,7 @@ export default function TripDetailPage() {
     update(next);
   }
 
-  function handleAddInvitee() {
-    const email = prompt("Friend's email?");
-    if (!email) return;
-    const name = prompt("Their name?") ?? email.split("@")[0];
-    const next: Trip = {
-      ...trip!,
-      invitees: [
-        ...(trip!.invitees ?? []),
-        { email, name, status: "pending" },
-      ],
-    };
-    update(next);
-  }
-
-  function handleAddExpense() {
-    const description = prompt("What's the expense?");
-    if (!description) return;
-    const amount = Number(prompt("Amount in USD?", "100"));
-    if (Number.isNaN(amount) || amount <= 0) return;
-    const paidBy = prompt("Who paid?", user!.name) ?? user!.name;
-    const next: Trip = {
-      ...trip!,
-      expenses: [
-        ...(trip!.expenses ?? []),
-        {
-          id: `exp-${Date.now()}`,
-          description,
-          amountUsd: amount,
-          paidBy,
-          splitAmong: [user!.name, ...(trip!.invitees ?? []).map((i) => i.name ?? i.email)],
-          date: new Date().toISOString().slice(0, 10),
-        } as TripExpense,
-      ],
-    };
-    update(next);
-  }
+  // (Old prompt-based invite/expense handlers replaced by ExpenseTracker.)
 
   function handleRemoveItem(dayIndex: number, itemId: string) {
     const next: Trip = {
@@ -236,8 +210,13 @@ export default function TripDetailPage() {
           />
         </div>
         <div className="relative p-8 md:p-10 min-h-[260px] flex flex-col justify-end">
-          <h1 className="text-5xl font-bold tracking-tight">
-            {trip.destination}
+          {isMultiStop(trip) && (
+            <div className="font-mono text-[10px] tracking-[0.22em] text-[var(--accent)] uppercase mb-2">
+              // {tripStops(trip).length}-stop trip
+            </div>
+          )}
+          <h1 className="text-5xl font-bold tracking-tight leading-[1.05]">
+            {routeSummary(trip)}
           </h1>
           <div className="mt-3 text-white/85 text-lg">
             {start} — {end} · {trip.travelers} traveler
@@ -302,12 +281,117 @@ export default function TripDetailPage() {
 
       <VoiceCommandButton trip={trip} />
 
-      <GroupPanel
-        trip={trip}
-        currentUser={user.name}
-        onAddInvitee={handleAddInvitee}
-        onAddExpense={handleAddExpense}
-      />
+      <div className="mt-6">
+        <ExpenseTracker
+          trip={trip}
+          currentUserName={user.name}
+          onChange={update}
+        />
+      </div>
+
+      <div className="mt-6">
+        <TripDoctor trip={trip} />
+      </div>
+
+      <div className="mt-6">
+        <ScreenshotIntel
+          context={`Existing trip · ${routeSummary(trip)} · ${trip.startDate} to ${trip.endDate} · ${trip.travelers} traveler${trip.travelers === 1 ? "" : "s"} · vibes: ${trip.vibes.join(", ") || "none"}.`}
+          onApply={(s) => {
+            // Apply common screenshot suggestions back into the trip itself.
+            const p = (s.payload ?? {}) as {
+              date?: string;
+              time?: string;
+              title?: string;
+              description?: string;
+              category?: string;
+              budget?: number;
+            };
+            if (s.kind === "add-itinerary-item" && p.date && p.title) {
+              const dayIdx = trip.itinerary.findIndex((d) => d.date === p.date);
+              if (dayIdx >= 0) {
+                const next = { ...trip };
+                const day = { ...next.itinerary[dayIdx] };
+                day.items = [
+                  ...day.items,
+                  {
+                    id: `${p.date}-ai-${Date.now()}`,
+                    time: p.time ?? "12:00",
+                    title: p.title,
+                    description: p.description ?? "Added from screenshot",
+                    category: (p.category as never) ?? "activity",
+                  },
+                ].sort((a, b) => a.time.localeCompare(b.time));
+                next.itinerary = [...next.itinerary];
+                next.itinerary[dayIdx] = day;
+                update(next);
+              }
+            }
+            if (s.kind === "update-budget" && typeof p.budget === "number") {
+              update({ ...trip, budget: p.budget });
+            }
+          }}
+        />
+      </div>
+
+      <div className="mt-6">
+        <TravelIntel
+          destination={trip.destination}
+          durationDays={trip.itinerary.length}
+          tripStartDate={trip.startDate}
+          tripEndDate={trip.endDate}
+        />
+      </div>
+
+      <div className="mt-6">
+        <RestaurantsPanel
+          trip={trip}
+          onAddToItinerary={(dayIdx, item) => {
+            const next = { ...trip };
+            const day = { ...next.itinerary[dayIdx] };
+            day.items = [...day.items, item].sort((a, b) =>
+              a.time.localeCompare(b.time)
+            );
+            next.itinerary = [...next.itinerary];
+            next.itinerary[dayIdx] = day;
+            update(next);
+          }}
+        />
+      </div>
+
+      <div className="mt-6">
+        <FriendSignals destination={trip.destination} />
+      </div>
+
+      <div className="mt-6">
+        <CheckoutBundle
+          destination={trip.destination}
+          startDate={trip.startDate}
+          endDate={trip.endDate}
+          travelers={trip.travelers}
+          distanceMiles={1500}
+          estimatedSpendUsd={(trip.budget ?? 2500) * 1}
+        />
+      </div>
+
+      <div className="mt-6">
+        <Link
+          href={`/trips/${trip.id}/wrapped`}
+          className="steel rounded-2xl p-5 hover:brightness-110 transition flex items-center justify-between"
+        >
+          <div>
+            <div className="font-mono text-[10px] tracking-[0.2em] text-[var(--accent)] uppercase">
+              // 05 · TRIP WRAPPED
+            </div>
+            <div className="font-semibold mt-1">
+              See your trip recap →
+            </div>
+            <div className="text-xs text-[var(--muted)] mt-1">
+              Auto-generated stats + highlights, share-ready
+            </div>
+          </div>
+          <span className="text-2xl text-[var(--accent)]">✦</span>
+        </Link>
+      </div>
 
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link
@@ -352,24 +436,47 @@ export default function TripDetailPage() {
         <h2 className="text-2xl font-bold tracking-tight">
           Your day-by-day plan
         </h2>
-        <button
-          onClick={handleDelete}
-          className="text-sm text-[var(--danger)] hover:underline"
-        >
-          Delete trip
-        </button>
+        <div className="flex items-center gap-3">
+          <TripShareButton trip={trip} />
+          <button
+            onClick={handleDelete}
+            className="text-sm text-[var(--danger)] hover:underline"
+          >
+            Delete trip
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 space-y-4">
-        {trip.itinerary.map((day, idx) => (
-          <div key={day.date} className="steel overflow-hidden">
-            <div className="px-6 py-4 border-b border-[var(--edge)] flex items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
-                  Day {idx + 1}
+        {trip.itinerary.map((day, idx) => {
+          const prev = idx > 0 ? trip.itinerary[idx - 1] : null;
+          const stopChanged =
+            isMultiStop(trip) &&
+            day.stopDestination &&
+            day.stopDestination !== prev?.stopDestination;
+          return (
+            <div key={day.date}>
+              {stopChanged && (
+                <div className="mt-6 mb-3 flex items-center gap-3">
+                  <span className="font-mono text-[10px] tracking-[0.22em] text-[var(--accent)] uppercase shrink-0">
+                    // STOP · {day.stopDestination}
+                  </span>
+                  <span className="flex-1 h-px bg-[var(--accent)]/30" />
                 </div>
-                <div className="font-bold text-lg">{day.label}</div>
-              </div>
+              )}
+              <div className="steel overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--edge)] flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">
+                      Day {idx + 1}
+                      {day.stopDestination && isMultiStop(trip) && (
+                        <span className="ml-1 normal-case tracking-normal text-[var(--accent)]/80">
+                          · {day.stopDestination}
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-bold text-lg">{day.label}</div>
+                  </div>
               <div className="flex items-center gap-3">
                 {(() => {
                   const total = day.items.reduce(
@@ -445,9 +552,37 @@ export default function TripDetailPage() {
               )}
             </ol>
           </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function TripShareButton({ trip }: { trip: Trip }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-sm text-[var(--muted)] hover:text-white"
+      >
+        Share trip
+      </button>
+      <ShareSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        target={{
+          kind: "trip",
+          id: trip.id,
+          destination: routeSummary(trip),
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+        }}
+        shareText={`My ${routeSummary(trip)} trip on Voyage`}
+      />
+    </>
   );
 }
 
@@ -566,89 +701,4 @@ function LiveCompanion({
   );
 }
 
-function GroupPanel({
-  trip,
-  currentUser,
-  onAddInvitee,
-  onAddExpense,
-}: {
-  trip: Trip;
-  currentUser: string;
-  onAddInvitee: () => void;
-  onAddExpense: () => void;
-}) {
-  const totalSpend = (trip.expenses ?? []).reduce(
-    (s, e) => s + e.amountUsd,
-    0
-  );
-  const allParticipants = [
-    currentUser,
-    ...(trip.invitees ?? []).map((i) => i.name ?? i.email),
-  ];
-  const perPerson = totalSpend / Math.max(1, allParticipants.length);
-
-  return (
-    <div className="steel mt-6 p-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="text-xs font-bold tracking-[0.2em] text-[var(--muted)]">
-            TRAVELING TOGETHER
-          </div>
-          <div className="text-lg font-bold mt-1">
-            {allParticipants.length} traveler
-            {allParticipants.length === 1 ? "" : "s"}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={onAddInvitee} className="btn-steel px-3 py-2 text-sm">
-            + Invite
-          </button>
-          <button onClick={onAddExpense} className="btn-steel px-3 py-2 text-sm">
-            + Add expense
-          </button>
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <span className="bg-white text-black px-3 py-1.5 text-sm font-medium">
-          {currentUser} (you)
-        </span>
-        {(trip.invitees ?? []).map((i) => (
-          <span
-            key={i.email}
-            className="bg-white/8 border border-[var(--edge)] px-3 py-1.5 text-sm"
-          >
-            {i.name ?? i.email}{" "}
-            <span className="text-[var(--muted)] text-xs">
-              ({i.status})
-            </span>
-          </span>
-        ))}
-      </div>
-      {(trip.expenses ?? []).length > 0 && (
-        <div className="mt-5 pt-4 border-t border-[var(--edge)]">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-[var(--muted)]">
-              Total trip spend
-            </div>
-            <div className="text-2xl font-bold tracking-tight">
-              ${totalSpend.toLocaleString()}
-            </div>
-          </div>
-          <div className="text-xs text-[var(--muted)] mt-1">
-            ${perPerson.toFixed(0)} per person
-          </div>
-          <ul className="mt-3 space-y-1 text-sm">
-            {(trip.expenses ?? []).slice(-4).map((e) => (
-              <li key={e.id} className="flex justify-between">
-                <span>{e.description}</span>
-                <span className="text-[var(--muted)]">
-                  ${e.amountUsd} · {e.paidBy}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
+// (GroupPanel removed — replaced by ExpenseTracker.)
