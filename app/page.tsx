@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { websiteLd } from "@/lib/seo";
 
 const PRESETS = [
   { city: "Tokyo", code: "TYO", days: 7, vibe: "Food & culture", emoji: "🗼" },
@@ -12,6 +13,11 @@ const PRESETS = [
 export default function Home() {
   return (
     <div>
+      {/* Track F (SEO): schema.org/WebSite + sitelinks-search-box hint. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: websiteLd() }}
+      />
       {/* HERO */}
       <section className="mx-auto max-w-6xl px-6 pt-20 md:pt-24 pb-12">
         <div className="text-center">
