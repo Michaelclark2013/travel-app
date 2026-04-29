@@ -21,6 +21,12 @@
 
 import type { ReactNode } from "react";
 import { AdminShell } from "./_components/AdminShell";
+// Track 9: AdminCopilot is a Cmd+. side-panel chat that listens for
+// the keyboard shortcut globally. Mounting it here means every admin
+// route gets the copilot for free; per-page context is set by the
+// pages themselves if they want to pass `context` to the rendered
+// instance, otherwise it defaults to the current pathname.
+import AdminCopilot from "@/components/AdminCopilot";
 
 export const metadata = {
   title: "Voyage Admin",
@@ -40,6 +46,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       }}
     >
       <AdminShell>{children}</AdminShell>
+      <AdminCopilot />
     </div>
   );
 }
