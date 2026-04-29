@@ -15,6 +15,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import PushOptInPrompt from "@/components/PushOptInPrompt";
 import GlobalSearch from "@/components/GlobalSearch";
 import SupabaseSocialBoot from "@/components/SupabaseSocialBoot";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -156,6 +157,10 @@ export default function RootLayout({
           <SwRegister />
           <ClientObservability />
           <SupabaseSocialBoot />
+          {/* Track 2: shows when an admin is impersonating a user. Renders */}
+          {/* nothing for everyone else, so the layout cost is essentially  */}
+          {/* zero outside of an active impersonation session.              */}
+          <ImpersonationBanner />
           <Nav />
           <main className="flex-1 pb-20 lg:pb-0">{children}</main>
           <footer className="border-t border-[var(--border)] px-6 py-10 text-xs text-[var(--muted)] font-mono">
