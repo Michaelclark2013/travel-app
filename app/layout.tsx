@@ -12,6 +12,7 @@ import Toaster from "@/components/Toaster";
 import Shortcuts from "@/components/Shortcuts";
 import MobileTabBar from "@/components/MobileTabBar";
 import InstallPrompt from "@/components/InstallPrompt";
+import PushOptInPrompt from "@/components/PushOptInPrompt";
 import GlobalSearch from "@/components/GlobalSearch";
 import SupabaseSocialBoot from "@/components/SupabaseSocialBoot";
 
@@ -35,6 +36,31 @@ const geistMono = Geist_Mono({
 // account is registered and verified.
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://travel-app-tan-gamma.vercel.app";
+
+// Apple-touch-startup-image entries — one per common iPhone/iPad pixel size
+// and orientation. Each one points at /apple-icon (the dynamic ImageResponse
+// route) so we don't have to commit raster splash assets. Track F owns the
+// rest of the head metadata (og/twitter/sitemap); only PWA-related links
+// belong here.
+const APPLE_SPLASH = [
+  // iPhone 14/15/16 family — Pro & Pro Max
+  { media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+  { media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+  // iPhone 12/13/14 standard
+  { media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+  // iPhone 11 / XR
+  { media: "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+  // iPhone X / Xs / 11 Pro
+  { media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
+  // iPhone 8 / SE2
+  { media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+  // iPad Pro 12.9"
+  { media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+  // iPad Pro 11"
+  { media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+  // iPad standard
+  { media: "(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" },
+];
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -83,6 +109,15 @@ export const metadata: Metadata = {
     description:
       "AI-powered travel planning. Find cheap flights, hotels, and build a day-by-day itinerary.",
   },
+  icons: {
+    // Apple-touch-startup-image splashes — one entry per device size/orientation.
+    // Track F owns og/twitter; we only own PWA + apple PWA chrome.
+    other: APPLE_SPLASH.map((s) => ({
+      rel: "apple-touch-startup-image",
+      url: "/apple-icon",
+      media: s.media,
+    })),
+  },
 };
 
 export const viewport: Viewport = {
@@ -103,13 +138,16 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body
+        className="min-h-full flex flex-col"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <AuthProvider>
           <SwRegister />
           <ClientObservability />
           <SupabaseSocialBoot />
           <Nav />
-          <main className="flex-1 pb-16 lg:pb-0">{children}</main>
+          <main className="flex-1 pb-20 lg:pb-0">{children}</main>
           <footer className="border-t border-[var(--border)] px-6 py-10 text-xs text-[var(--muted)] font-mono">
             <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               <div>
@@ -152,6 +190,7 @@ export default function RootLayout({
           <Shortcuts />
           <MobileTabBar />
           <InstallPrompt />
+          <PushOptInPrompt />
           <GlobalSearch />
         </AuthProvider>
       </body>

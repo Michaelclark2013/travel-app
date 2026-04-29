@@ -1,8 +1,12 @@
-"use client";
+// Install prompt for Voyage. Two paths:
+//   1) Chromium (Android/desktop): catches `beforeinstallprompt`, stores the
+//      event, and exposes a button that calls `prompt()` on user gesture.
+//   2) iOS Safari: that event never fires, so we detect via UA and show a
+//      one-time bottom sheet with the Share -> Add to Home Screen instructions.
+// Either way: dismiss is sticky via localStorage, and we suppress the prompt
+// entirely when the app is already running standalone.
 
-// Listens for the `beforeinstallprompt` event (Chrome/Edge/Android) and
-// surfaces a small "Install Voyage" banner. iOS Safari doesn't fire that
-// event, so we show alternative iOS-specific instructions instead.
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -16,7 +20,13 @@ type BeforeInstallPromptEvent = Event & {
 function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+  // Exclude Chrome and Firefox on iOS — they can't add to home screen
+  // through the same Share sheet flow either, but the message is wrong.
+  return (
+    /iPhone|iPad|iPod/.test(ua) &&
+    /Safari/.test(ua) &&
+    !/CriOS|FxiOS|EdgiOS/.test(ua)
+  );
 }
 
 function isStandalone(): boolean {
@@ -33,11 +43,13 @@ export default function InstallPrompt() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
     if (typeof window === "undefined") return;
+    if (isStandalone()) return;
     if (window.localStorage.getItem(DISMISS_KEY)) return;
 
     const onPrompt = (e: Event) => {
+      // Stop Chrome from showing its own mini-infobar — we want to control
+      // when (and whether) the user sees this.
       e.preventDefault();
       setEvt(e as BeforeInstallPromptEvent);
       // Defer slightly so it doesn't compete with the cookie banner.
@@ -75,7 +87,7 @@ export default function InstallPrompt() {
 
   return (
     <div
-      className="fixed left-4 bottom-20 lg:bottom-5 z-50 sm:left-5 sm:max-w-xs pointer-events-none"
+      className="fixed left-4 right-4 sm:right-auto bottom-20 lg:bottom-5 z-50 sm:left-5 sm:max-w-xs pointer-events-none"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div
@@ -88,13 +100,20 @@ export default function InstallPrompt() {
         aria-label="Install Voyage"
       >
         <div className="flex items-start gap-3">
-          <span className="text-2xl">📲</span>
+          <span className="text-2xl" aria-hidden>
+            📲
+          </span>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold">Install Voyage</div>
             {iosVisible ? (
               <div className="text-xs text-[var(--muted)] mt-1 leading-snug">
-                Tap <span className="text-white">Share</span> in Safari, then{" "}
-                <span className="text-white">Add to Home Screen</span>.
+                Tap{" "}
+                <span className="text-white font-mono">Share</span> in
+                Safari, then{" "}
+                <span className="text-white font-mono">
+                  Add to Home Screen
+                </span>
+                .
               </div>
             ) : (
               <div className="text-xs text-[var(--muted)] mt-1">
@@ -110,7 +129,7 @@ export default function InstallPrompt() {
             ×
           </button>
         </div>
-        {!iosVisible && (
+        {!iosVisible && evt && (
           <div className="mt-3 flex gap-2">
             <button
               onClick={dismiss}
@@ -124,6 +143,11 @@ export default function InstallPrompt() {
             >
               Install
             </button>
+          </div>
+        )}
+        {!iosVisible && !evt && (
+          <div className="mt-3 text-[10px] text-[var(--muted)] font-mono">
+            Browser menu → Install Voyage
           </div>
         )}
       </div>
