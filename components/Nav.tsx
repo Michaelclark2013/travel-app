@@ -1,5 +1,9 @@
 "use client";
 
+// Top navigation. Track B (perf/a11y) added focus-visible rings on every
+// interactive element, aria-label on icon-only triggers, and aria-expanded
+// on the user-menu disclosure so screen readers announce its state.
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bell, MessageCircle, Search as SearchIcon } from "lucide-react";
@@ -9,6 +13,11 @@ import {
   unreadThreadCount,
 } from "@/lib/social";
 import { openGlobalSearch } from "@/components/GlobalSearch";
+
+// Reusable focus-ring class — applied to every <button>/<a> in this file so
+// keyboard users can always see where focus is. Uses the brand accent color.
+const FOCUS_RING =
+  "outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
 
 export default function Nav() {
   const { user, ready, signOut } = useAuth();
@@ -37,8 +46,15 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--background)]/70 backdrop-blur-xl">
       <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-strong)] bg-[var(--card-strong)] font-mono text-sm font-bold tracking-tight">
+        <Link
+          href="/"
+          aria-label="Voyage home"
+          className={`flex items-center gap-3 group rounded-md ${FOCUS_RING}`}
+        >
+          <span
+            aria-hidden
+            className="relative inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-strong)] bg-[var(--card-strong)] font-mono text-sm font-bold tracking-tight"
+          >
             <span className="text-[var(--accent)] text-glow">V</span>
           </span>
           <div className="leading-tight">
@@ -50,7 +66,10 @@ export default function Nav() {
             </div>
           </div>
         </Link>
-        <nav className="hidden lg:flex items-center gap-0.5 text-sm">
+        <nav
+          aria-label="Primary"
+          className="hidden lg:flex items-center gap-0.5 text-sm"
+        >
           <NavLink href="/plan">Plan</NavLink>
           <NavLink href="/explore">Explore</NavLink>
           <NavLink href="/flights">Flights</NavLink>
@@ -102,23 +121,37 @@ export default function Nav() {
             </>
           )}
           {!ready ? (
-            <div className="h-9 w-24 rounded-md bg-[var(--card-strong)] shimmer" />
+            <div
+              className="h-9 w-24 rounded-md bg-[var(--card-strong)] shimmer"
+              aria-hidden
+            />
           ) : user ? (
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setMenuOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--card-strong)] px-2.5 py-1.5 hover:bg-white/5 transition"
+                aria-label={`Account menu for ${user.name}`}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className={`flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--card-strong)] px-2.5 py-1.5 hover:bg-white/5 transition ${FOCUS_RING}`}
               >
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-mono text-xs font-semibold">
+                <span
+                  aria-hidden
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-mono text-xs font-semibold"
+                >
                   {user.name.charAt(0).toUpperCase()}
                 </span>
                 <span className="font-mono text-xs tracking-wide max-w-[120px] truncate">
                   {user.name.split(" ")[0]}
                 </span>
-                <span className="text-[var(--muted)] text-xs">▾</span>
+                <span aria-hidden className="text-[var(--muted)] text-xs">▾</span>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-60 rounded-xl border border-[var(--border-strong)] bg-[var(--background-soft)] backdrop-blur-xl p-2 shadow-2xl">
+                <div
+                  role="menu"
+                  aria-label="Account menu"
+                  className="absolute right-0 mt-2 w-60 rounded-xl border border-[var(--border-strong)] bg-[var(--background-soft)] backdrop-blur-xl p-2 shadow-2xl"
+                >
                   <div className="px-3 py-2 border-b border-[var(--border)] mb-1">
                     <div className="font-medium truncate">{user.name}</div>
                     <div className="text-xs text-[var(--muted)] truncate">
@@ -162,11 +195,13 @@ export default function Nav() {
                     Emergency SOS
                   </DropLink>
                   <button
+                    type="button"
+                    role="menuitem"
                     onClick={() => {
                       setMenuOpen(false);
                       signOut();
                     }}
-                    className="block w-full text-left rounded-md px-3 py-2 text-sm text-[var(--danger)] hover:bg-white/5"
+                    className={`block w-full text-left rounded-md px-3 py-2 text-sm text-[var(--danger)] hover:bg-white/5 ${FOCUS_RING}`}
                   >
                     Sign out
                   </button>
@@ -176,7 +211,7 @@ export default function Nav() {
           ) : (
             <Link
               href="/sign-in"
-              className="btn-primary text-sm font-medium px-4 py-1.5"
+              className={`btn-primary text-sm font-medium px-4 py-1.5 ${FOCUS_RING}`}
             >
               Launch app
             </Link>
@@ -197,7 +232,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="rounded-md px-3 py-2 text-[var(--foreground)]/75 hover:text-[var(--foreground)] hover:bg-white/5 transition"
+      className={`rounded-md px-3 py-2 text-[var(--foreground)]/75 hover:text-[var(--foreground)] hover:bg-white/5 transition ${FOCUS_RING}`}
     >
       {children}
     </Link>
@@ -216,8 +251,9 @@ function DropLink({
   return (
     <Link
       href={href}
+      role="menuitem"
       onClick={onClick}
-      className="block rounded-md px-3 py-2 text-sm hover:bg-white/5"
+      className={`block rounded-md px-3 py-2 text-sm hover:bg-white/5 ${FOCUS_RING}`}
     >
       {children}
     </Link>

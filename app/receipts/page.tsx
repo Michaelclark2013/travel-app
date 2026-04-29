@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
   Camera,
@@ -188,11 +189,20 @@ function Inner() {
             Confirm details
           </div>
           {draft.imageDataUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            // The receipt preview is a captured/pasted data: URI — pass through
+            // next/image with `unoptimized` so we don't try to push a data URI
+            // through the optimizer, while still getting alt-text + lazy-load.
+            <Image
               src={draft.imageDataUrl}
-              alt="Receipt preview"
-              className="rounded-md max-h-40 mb-3"
+              alt={
+                draft.vendor
+                  ? `Receipt from ${draft.vendor}`
+                  : "Captured receipt preview"
+              }
+              width={400}
+              height={160}
+              unoptimized
+              className="rounded-md max-h-40 mb-3 h-auto w-auto"
             />
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
